@@ -1,0 +1,10 @@
+Remove servers on 4001 and 40005 if possible to avoid conflicts when multiple Parser or Logic instances run on the same machine.
+Manage a pool of agents per type with busy/free state. Consider scenarios with multiple JADE-MAIN nodes and build a system where each main maintains a list of its connected agents while keeping the overall knowledge base consistent by exchanging messages with peer mains. Goal: distributed network.
+
+
+
+
+Project entry point is SDAI/Project/JADE-bin-4.6.0/jade/docker.
+From here we run commands to start the main or the agents. See the README as well.
+
+We should properly handle cases where, for any reason, agents of type "parser", "logic", etc. become unreachable. An error should be generated because the container for an agent can be stopped, and if the agent is no longer present in the system we must handle it gracefully.

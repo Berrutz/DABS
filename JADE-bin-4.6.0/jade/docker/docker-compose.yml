@@ -1,0 +1,107 @@
+name: sdai
+services:
+  # ===== MAIN (DF/AMS) =====
+  jade-main:
+    build:
+      context: ..   # build from the "jade/" root
+      dockerfile: docker/Dockerfile
+    image: sdai:main
+    container_name: jade-main
+    profiles: ["main"]
+    environment:
+      ROLE: "main"
+      # For local usage expose the Main as "jade-main" (Docker network DNS)
+      PUBLIC_HOST: ${PUBLIC_HOST:-jade-main}
+      # For the Tailscale variant use docker-compose.tailscale.yml
+      PORT: "1099"
+      HTTP_PORT: "7778"
+      SRC_DIR: "/app/"  
+      OUT_DIR: "/app/out"
+      LIB_DIR: "/app/web-ui/lib"
+    ports:
+      - "1099:1099"
+      - "7778:7778"
+      - "4100:4100"               
+    networks: [sdai-net]
+
+  # ===== ROLE SHORTCUT =====
+
+  jade-agent:
+    # If the image is not present locally, build it using the same Dockerfile as the main
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: sdai:main
+    container_name: jade-agent
+    profiles: ["agent"]
+    environment:
+      ROLE: "agent"
+      # Connect to the local Main by service name
+      MAIN_HOST: ${MAIN_HOST:-jade-main}
+      PORT: "1099"
+      SRC_DIR: "/app/"
+      OUT_DIR: "/app/out"
+      LIB_DIR: "/app/web-ui/lib"
+      MAIN_MONITOR_AUTOSTART : "1"   # auto-start monitor in the background
+    #ports:
+    #  - "1099:1099"
+    #  - "7778:7778"
+    networks: [sdai-net]
+
+ # ===== PRESET: UserAgent + GUI (server.js) =====
+  user-ui:
+    extends:
+      service: jade-agent         # reuse base image/entrypoint/env
+    container_name: user-ui
+    environment:
+      AGENTS: "user:agents.UserAgent"
+      UI_AUTOSTART: "1"          # auto-start npm in the background
+      QUERY_HOST: "query"
+      QUERY_PORT: "5001"
+    ports:
+      - "4000:4000"               # Express GUI
+      - "5000:5000"               # UserAgent socket
+      - "5001:5001"               # QueryAgent socket
+      - "5002:5002"               # Logic -> GUI socket
+    networks: [sdai-net]
+
+  # ===== PRESET: ParserAgent =====
+  parser:
+    extends:
+      service: jade-agent
+    container_name: parser
+    profiles: ["agent"]
+    environment:
+      AGENTS: "parser:agents.ParserAgent"
+      FRONT_HOST: "user-ui"
+      FRONT_PORT: "5002"
+    networks: [sdai-net]
+
+  # ===== PRESET: LogicAgent =====
+  logic:
+    extends:
+      service: jade-agent
+    container_name: logic
+    profiles: ["agent"]
+    environment:
+      AGENTS: "logic:agents.LogicAgent"
+      FRONT_HOST: "user-ui"
+      FRONT_PORT: "5002"
+    networks: [sdai-net]
+
+  # ===== PRESET: QueryAgent =====
+  query:
+    extends:
+      service: jade-agent
+    container_name: query
+    profiles: ["agent"]
+    environment:
+      AGENTS: "query:agents.QueryAgent"
+      FRONT_HOST: "user-ui"
+      FRONT_PORT: "5002"
+    networks: [sdai-net]
+
+    
+networks:
+  sdai-net:
+    driver: bridge

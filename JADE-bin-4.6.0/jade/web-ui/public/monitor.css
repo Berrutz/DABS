@@ -1,0 +1,69 @@
+:root {
+  --bg: #0b0b0f;
+  --card: #12121a;
+  --muted: #a3a3b2;
+  --fg: #e9e9f4;
+  --accent: #7c7cff;
+  --good: #3bd671;
+  --bad: #ff4d6d;
+  --pill: #1b1b28;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: radial-gradient(1200px 600px at 10% 10%, #141420, #0b0b0f);
+  color: var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.grid {
+  max-width: 1100px;
+  margin: 32px auto;
+  padding: 0 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+header {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  background: linear-gradient(180deg, #151527, #11111a);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+h1 { margin: 0; font-weight: 700; letter-spacing: .5px; }
+.status { display: flex; align-items: center; gap: 10px; color: var(--muted); }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 0 rgba(0,0,0,0.3); }
+.dot.up { background: var(--good); animation: pulse 1.6s infinite; }
+.dot.down { background: var(--bad); animation: breathe 2.6s infinite; }
+
+@keyframes pulse { 0%{ box-shadow:0 0 0 0 rgba(59,214,113,.6);} 70%{box-shadow:0 0 0 14px rgba(59,214,113,0);} 100%{box-shadow:0 0 0 0 rgba(59,214,113,0);} }
+@keyframes breathe { 0%{ opacity:.7;} 50%{opacity:.3;} 100%{opacity:.7;} }
+
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.kv { display: flex; align-items: center; gap: 8px; margin: 8px 0; color: var(--muted); }
+.kv span { width: 110px; opacity: .9; }
+.kv code { color: var(--fg); background: #181821; padding: 4px 8px; border-radius: 8px; }
+
+.agents .list { list-style: none; padding: 0; margin: 8px 0 0 0; display: grid; gap: 10px; }
+.empty { color: var(--muted); margin-top: 6px; }
+
+.li-anim { display: grid; grid-template-columns: 160px 1fr 120px; gap: 12px; align-items: center; background: #141422; padding: 10px 12px; border-radius: 12px; transform: translateY(8px); opacity: 0; animation: rise .35s ease-out forwards; }
+@keyframes rise { to { transform: translateY(0); opacity: 1; } }
+
+.pill { background: var(--pill); padding: 6px 10px; border-radius: 999px; font-weight: 600; }
+.cls { color: var(--muted); }
+.since { text-align: right; color: var(--muted); }

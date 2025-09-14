@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>JADE Monitor</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/monitor/monitor.css">
+</head>
+<body>
+  <div class="grid">
+    <header>
+      <h1>JADE Monitor</h1>
+      <div class="status">
+        <span id="dot" class="dot"></span>
+        <span id="label">checking…</span>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>Platform</h2>
+      <div class="kv"><span>Host:</span><code id="mainHost">-</code></div>
+      <div class="kv"><span>RMI:</span><code id="rmiPort">-</code></div>
+      <div class="kv"><span>HTTP-MTP:</span><code id="httpPort">-</code></div>
+      <div class="kv"><span>Container:</span><code id="hostName">-</code></div>
+      <div class="kv"><span>Updated:</span><code id="updated">-</code></div>
+    </section>
+
+    <section class="card agents">
+      <h2>Connected Agents</h2>
+      <ul id="agentList" class="list"></ul>
+      <div id="empty" class="empty">No agents registered</div>
+    </section>
+  </div>
+
+   <script src="/monitor/monitor.js">
+      //
+  </script>
+</body>
+</html>
