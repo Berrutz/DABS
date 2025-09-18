@@ -47,7 +47,7 @@ public class LogicAgent extends Agent {
         } catch (FIPAException fe) {
             fe.printStackTrace();
         }
-       
+        
         // === SWI-Prolog initialization ===
         try {
             String consult = "consult('" + KB_FILE + "')";
@@ -343,7 +343,7 @@ public class LogicAgent extends Agent {
             writer.write(line);
             writer.newLine();
         } catch (IOException e) {
-            System.err.println("❌ Error writing to knowledge.pl: " + e.getMessage());
+            System.err.println("[!] Error writing to knowledge.pl: " + e.getMessage());
         }
     }
 

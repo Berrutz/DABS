@@ -47,6 +47,8 @@ services:
     #  - "1099:1099"
     #  - "7778:7778"
     networks: [sdai-net]
+    volumes:
+      - kb-data:/app/web-ui/kb
 
  # ===== PRESET: UserAgent + GUI (server.js) =====
   user-ui:
@@ -105,3 +107,7 @@ services:
 networks:
   sdai-net:
     driver: bridge
+
+volumes:
+  kb-data:
+

@@ -17,6 +17,7 @@ public class LLMService {
     private static final String API_KEY = "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"; // Replace with your key
     private static final String API_URL = "https://openrouter.ai/api/v1/chat/completions";
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    private static final String KB_FILE = "web-ui/kb/knowledge.pl";
 
     // Callback to handle async response
     public interface LLMCallback {
@@ -115,27 +116,8 @@ public class LLMService {
         return String.join(", ", predicates);
     }
 
-    // Robust variant: use env KB_PATH and common fallbacks inside the container
     public static String readKBPredicatesSmart() {
-        String kbHint = System.getenv("KB_PATH");
-        if (kbHint == null || kbHint.isEmpty()) kbHint = "web-ui/kb/knowledge.pl";
-        String[] candidates = new String[] {
-                kbHint,
-                kbHint.startsWith("/") ? kbHint : "/app/" + kbHint,
-                "web-ui/kb/knowledge.pl",
-                "/app/web-ui/kb/knowledge.pl",
-                "kb/knowledge.pl",
-                "/app/kb/knowledge.pl"
-        };
-        for (String c : candidates) {
-            try {
-                if (new java.io.File(c).exists()) {
-                    return readKnowledgeAndExtractPredicates(c);
-                }
-            } catch (Exception ignored) {}
-        }
-        // Fallback anyway, let the base method handle the error
-        return readKnowledgeAndExtractPredicates(kbHint);
+        return readKnowledgeAndExtractPredicates(KB_FILE);
     }
 
     public static void humanizeAnswer(String logicResult, String queryText, LLMCallback callback) {
