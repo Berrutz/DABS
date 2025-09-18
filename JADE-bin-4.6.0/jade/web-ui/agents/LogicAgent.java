@@ -27,6 +27,7 @@ public class LogicAgent extends Agent {
 
     private AID queryAgent = null;
     private final String KB_FILE = "web-ui/kb/knowledge.pl";
+    private final Set<String> dynamicPredicates = new HashSet<>();
 
     protected void setup() {
 
@@ -235,6 +236,7 @@ public class LogicAgent extends Agent {
     }
 
     private void handlePrologFact(String fact) {
+        declareDynamic(fact);
         String prologCmd = "assertz(" + fact + ")";
         System.out.println("🛠 Final Prolog command: " + prologCmd);
         try {
@@ -256,6 +258,7 @@ public class LogicAgent extends Agent {
     
 
     private void handlePrologRule(String rule) {
+        declareDynamic(rule);
         String prologCmd = "assertz((" + rule + "))";
         try {
             Query q = new Query(prologCmd);
@@ -335,6 +338,50 @@ public class LogicAgent extends Agent {
             System.out.println("📤 Answer sent to the frontend: " + response);
         } catch (IOException e) {
             System.err.println("❌ Error sending to frontend: " + e.getMessage());
+        }
+    }
+
+    private void declareDynamic(String clause) {
+        if (clause == null) {
+            return;
+        }
+        String trimmed = clause.trim();
+        if (trimmed.isEmpty()) {
+            return;
+        }
+        int ruleSep = indexOfTopLevel(trimmed, ":-");
+        if (ruleSep >= 0) {
+            trimmed = trimmed.substring(0, ruleSep).trim();
+        }
+        String name;
+        int arity = 0;
+        int paren = trimmed.indexOf('(');
+        if (paren < 0) {
+            name = trimmed;
+        } else {
+            name = trimmed.substring(0, paren).trim();
+            int close = trimmed.lastIndexOf(')');
+            if (close > paren) {
+                String args = trimmed.substring(paren + 1, close).trim();
+                if (!args.isEmpty()) {
+                    arity = splitTopLevelByComma(args).size();
+                }
+            }
+        }
+        if (name == null || name.isEmpty()) {
+            return;
+        }
+        String key = name + "/" + arity;
+        if (!dynamicPredicates.add(key)) {
+            return;
+        }
+        String directive = ":- dynamic " + name + "/" + arity + ".";
+        appendToKnowledgeFile(directive);
+        try {
+            Query q = new Query("dynamic(" + key + ")");
+            q.hasSolution();
+        } catch (Exception e) {
+            System.err.println("[!] Unable to declare predicate dynamic (" + key + "): " + e.getMessage());
         }
     }
 
