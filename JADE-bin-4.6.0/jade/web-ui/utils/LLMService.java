@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 
 public class LLMService {
     private static final OkHttpClient httpClient = new OkHttpClient();
-    private static final String API_KEY = "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"; // Replace with your key
+    private static final String API_KEY = "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"; // Replace with your key
     private static final String API_URL = "https://openrouter.ai/api/v1/chat/completions";
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
 
