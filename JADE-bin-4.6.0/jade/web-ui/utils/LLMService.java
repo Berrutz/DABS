@@ -5,6 +5,7 @@ import org.json.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
@@ -186,50 +187,60 @@ public class LLMService {
 
         // Use the same path as LogicAgent for consistency in the container (/app as cwd)
         String availablePredicates = readKBPredicatesSmart();
-        Set<String> allowed = parsePredicateSet(availablePredicates);
+        String normalizedPredicates = availablePredicates == null ? "" : availablePredicates.trim();
+        boolean hasKnownPredicates = !normalizedPredicates.isEmpty();
+        Set<String> knownPredicates = parsePredicateSet(normalizedPredicates);
+        Set<String> allowedForCallback = knownPredicates;
+        boolean enforceAllowed = "query".equalsIgnoreCase(type) && !knownPredicates.isEmpty();
 
-        String prompt = "";
+        String prompt;
         if ("fact".equalsIgnoreCase(type)) {
-
-            prompt = "You translate natural language into ONE Prolog fact.\n" +
-            "STRICT RULES:\n" +
-            "- Output EXACTLY ONE FACT (not a rule), one line, end with a period.\n" +
-            "- Use ONLY predicates from the allowed list. Do NOT invent new predicates.\n" +
-            "- Use only lowercase atoms and constants. DO NOT USE VARIABLES (no tokens starting with uppercase or underscore).\n" +
-            "- Forbidden: multiple clauses; rules with ':-'; headless conjunctions; JSON; quotes; comments; anything after the first period.\n" +
-            "- If the sentence cannot be expressed with the allowed predicates, output exactly: NONE.\n\n" +
-            "Allowed predicates (functor/arity): " + availablePredicates + "\n" +
-            "Sentence: " + input + "\n" +
-            "Answer: (only the fact)";
-
-        
+            String predicateHint = knownPredicates.isEmpty()
+                    ? "There are no known predicates yet; create a sensible predicate name that matches the sentence."
+                    : "Prefer reusing one of these predicates when it matches the sentence: " + normalizedPredicates + ".";
+            prompt = "You translate natural language into ONE Prolog fact.\n"
+                    + "STRICT RULES:\n"
+                    + "- Output EXACTLY ONE FACT (not a rule), one line, end with a period.\n"
+                    + "- Use only lowercase atoms and constants. DO NOT USE VARIABLES (no tokens starting with uppercase or underscore).\n"
+                    + "- Forbidden: multiple clauses; rules with ':-'; headless conjunctions; JSON; quotes; comments; anything after the first period.\n"
+                    + "- If the sentence cannot be expressed as a single fact, output exactly: NONE.\n\n"
+                    + predicateHint + "\n"
+                    + "Sentence: " + input + "\n"
+                    + "Answer: (only the fact)";
+            allowedForCallback = Collections.emptySet();
+            enforceAllowed = false;
         } else if ("query".equalsIgnoreCase(type)) {
-
-            prompt = "You translate natural language into ONE Prolog query.\n" +
-                "STRICT RULES:\n" +
-                "- Output EXACTLY ONE QUERY, one line, starting with ?- and ending with a period.\n" +
-                "- Use ONLY predicates from the allowed list. Do NOT invent new predicates or synonyms.\n" +
-                "- No comments, no code fences, no explanations.\n" +
-                "- If the question cannot be expressed using ONLY the allowed predicates, output exactly: ?- fail.\n\n" +
-                "Allowed predicates (functor/arity): " + availablePredicates + "\n" +
-                "Question: " + input + "\n" +
-                "Answer: (only the query)";
-
+            prompt = "You translate natural language into ONE Prolog query.\n"
+                    + "STRICT RULES:\n"
+                    + "- Output EXACTLY ONE QUERY, one line, starting with ?- and ending with a period.\n"
+                    + "- Use ONLY predicates from the allowed list. Do NOT invent new predicates or synonyms.\n"
+                    + "- No comments, no code fences, no explanations.\n"
+                    + "- If the question cannot be expressed using ONLY the allowed predicates, output exactly: ?- fail.\n\n"
+                    + "Allowed predicates (functor/arity): " + (hasKnownPredicates ? normalizedPredicates : "(none)") + "\n"
+                    + "Question: " + input + "\n"
+                    + "Answer: (only the query)";
         } else {
             callback.onError("Unknown LLM request type: " + type);
             return;
         }
 
-        String jsonBody = "{\n" +
-                "  \"model\": \"mistralai/mistral-7b-instruct\",\n" +
-                "  \"temperature\": 0.1,\n" +
-                "  \"max_tokens\": 128,\n" +
-                "  \"stop\": [\"\\n\", \"%\", \"```\"],\n" +
-                "  \"messages\": [\n" +
-                "    {\"role\": \"system\", \"content\": \"Follow the rules strictly. Use ONLY the allowed predicates. Output exactly one Prolog item (fact or query) as requested. No comments or explanations.\"},\n" +
-                "    {\"role\": \"user\", \"content\": \"" + prompt.replace("\"", "\\\"") + "\"}\n" +
-                "  ]\n" +
-                "}";
+        final boolean enforceAllowedFinal = enforceAllowed;
+        final Set<String> allowedFinal = allowedForCallback;
+
+        String systemPrompt = enforceAllowedFinal
+                ? "Follow the rules strictly. Use ONLY the allowed predicates. Output exactly one Prolog item (fact or query) as requested. No comments or explanations."
+                : "Follow the rules strictly. Output exactly one Prolog item (fact or query) as requested. Prefer existing predicates when they match, but you may introduce new ones when necessary. No comments or explanations.";
+
+        String jsonBody = "{\n"
+                + "  \"model\": \"mistralai/mistral-7b-instruct\",\n"
+                + "  \"temperature\": 0.1,\n"
+                + "  \"max_tokens\": 128,\n"
+                + "  \"stop\": [\"\\n\", \"%\", \"```\"],\n"
+                + "  \"messages\": [\n"
+                + "    {\"role\": \"system\", \"content\": \"" + systemPrompt.replace("\"", "\\\"") + "\"},\n"
+                + "    {\"role\": \"user\", \"content\": \"" + prompt.replace("\"", "\\\"") + "\"}\n"
+                + "  ]\n"
+                + "}";
 
         RequestBody body = RequestBody.create(JSON,jsonBody);
 
@@ -260,7 +271,9 @@ public class LLMService {
                     JSONObject msg = root.getJSONArray("choices").getJSONObject(0).getJSONObject("message");
                     String content = msg.getString("content").trim();
 
-                    String patched = enforceAllowedPredicates(content, type, allowed);
+                    String patched = enforceAllowedFinal
+                            ? enforceAllowedPredicates(content, type, allowedFinal)
+                            : content;
                     if (!patched.equals(content)) {
                         msg.put("content", patched);
                         callback.onSuccess(root.toString());
