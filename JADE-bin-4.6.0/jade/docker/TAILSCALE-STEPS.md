@@ -30,6 +30,8 @@ Puoi lanciare anche gli altri agenti locali (parser, logic, query) se necessario
 ```powershell
 Set-Location C:\percorso\al\progetto\JADE-bin-4.6.0\jade\docker
 docker compose build jade-agent
+# oppure aggiungi --no-cache se vuoi forzare un rebuild completo
+# docker compose build jade-agent --no-cache
 
 $env:PUBLIC_HOST = "100.96.79.2"
 $env:MAIN_HOST   = "100.84.182.11"
