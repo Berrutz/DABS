@@ -15,10 +15,20 @@ Prima di iniziare:
 ## Macchina A – 100.84.182.11 (JADE Main)
 
 ```powershell
+# PowerShell (Windows host)
 Set-Location C:\percorso\al\progetto\JADE-bin-4.6.0\jade\docker
 docker compose build jade-main
 
 $env:PUBLIC_HOST = "100.84.182.11"
+docker compose --profile main up -d jade-main
+```
+
+```bash
+# WSL / Linux shell
+cd /mnt/c/percorso/al/progetto/JADE-bin-4.6.0/jade/docker
+docker compose build jade-main
+
+export PUBLIC_HOST=100.84.182.11
 docker compose --profile main up -d jade-main
 ```
 
@@ -30,6 +40,7 @@ docker compose --profile main up -d jade-main
 ## Macchina B – 100.96.79.2 (user-ui remoto)
 
 ```powershell
+# PowerShell (Windows host)
 Set-Location C:\percorso\al\progetto\JADE-bin-4.6.0\jade\docker
 docker compose build jade-agent
 # usa --no-cache se devi forzare il rebuild dell'immagine
@@ -40,6 +51,21 @@ $env:MAIN_HOST   = "100.84.182.11" # indirizzo del Main a cui collegarsi
 $env:QUERY_HOST  = "100.84.182.11" # la UI invia le query al QueryAgent remoto
 $env:LOCAL_HOST  = "100.96.79.2"   # IP su cui il CommandDispatcher (JICP) deve bindare
 $env:LOCAL_PORT  = "1099"          # porta locale usata sia dal bind che dall'annuncio
+
+docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile agent up user-ui
+```
+
+```bash
+# WSL / Linux shell
+cd /mnt/c/percorso/al/progetto/JADE-bin-4.6.0/jade/docker
+docker compose build jade-agent
+# docker compose build jade-agent --no-cache
+
+export PUBLIC_HOST=100.96.79.2
+export MAIN_HOST=100.84.182.11
+export QUERY_HOST=100.84.182.11
+export LOCAL_HOST=100.96.79.2
+export LOCAL_PORT=1099
 
 docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile agent up user-ui
 ```
