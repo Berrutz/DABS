@@ -22,7 +22,6 @@ services:
       - "1099:1099"
       - "7778:7778"
       - "4100:4100"               
-    networks: [sdai-net]
 
   # ===== ROLE SHORTCUT =====
 
@@ -48,7 +47,6 @@ services:
     #ports:
     #  - "1099:1099"
     #  - "7778:7778"
-    networks: [sdai-net]
     volumes:
       - kb-data:/app/web-ui/kb
 
@@ -67,7 +65,6 @@ services:
       - "5000:5000"               # UserAgent socket
       - "5001:5001"               # QueryAgent socket
       - "5002:5002"               # Logic -> GUI socket
-    networks: [sdai-net]
 
   # ===== PRESET: ParserAgent =====
   parser:
@@ -79,7 +76,6 @@ services:
       AGENTS: "parser:agents.ParserAgent"
       FRONT_HOST: ${FRONT_HOST:-user-ui}
       FRONT_PORT: ${FRONT_PORT:-5002}
-    networks: [sdai-net]
 
   # ===== PRESET: LogicAgent =====
   logic:
@@ -91,7 +87,6 @@ services:
       AGENTS: "logic:agents.LogicAgent"
       FRONT_HOST: ${FRONT_HOST:-user-ui}
       FRONT_PORT: ${FRONT_PORT:-5002}
-    networks: [sdai-net]
 
   # ===== PRESET: QueryAgent =====
   query:
@@ -103,14 +98,10 @@ services:
       AGENTS: "query:agents.QueryAgent"
       FRONT_HOST: ${FRONT_HOST:-user-ui}
       FRONT_PORT: ${FRONT_PORT:-5002}
-    networks: [sdai-net]
     ports:
       - "5001:5001"
 
     
-networks:
-  sdai-net:
-    driver: bridge
 
 volumes:
   kb-data:

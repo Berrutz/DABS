@@ -21,7 +21,6 @@ services:
       - "1099:1099"
       - "7778:7778"
       - "4100:4100"               # dashboard monitor for Main
-    networks: [sdai-net]
 
   # ===== ROLE SHORTCUT =====
 
@@ -45,7 +44,6 @@ services:
     ports:
       - "1099:1099"               # IMTP/RMI
       - "7778:7778"               # HTTP-MTP
-    networks: [sdai-net]
 
  # ===== PRESET: UserAgent + GUI (server.js) =====
   user-ui:
@@ -61,7 +59,6 @@ services:
       LOCAL_HOST: ${LOCAL_HOST:-}
       LOCAL_PORT: ${LOCAL_PORT:-}
     ports: []
-    networks: []
 
   # ===== PRESET: ParserAgent =====
   parser:
@@ -73,7 +70,6 @@ services:
       AGENTS: "parser:agents.ParserAgent"
       FRONT_HOST: ${FRONT_HOST:-user-ui}
       FRONT_PORT: ${FRONT_PORT:-5002}
-    networks: [sdai-net]
 
   # ===== PRESET: LogicAgent =====
   logic:
@@ -85,7 +81,6 @@ services:
       AGENTS: "logic:agents.LogicAgent"
       FRONT_HOST: ${FRONT_HOST:-user-ui}
       FRONT_PORT: ${FRONT_PORT:-5002}
-    networks: [sdai-net]
 
   # ===== PRESET: QueryAgent =====
   query:
@@ -97,9 +92,4 @@ services:
       AGENTS: "query:agents.QueryAgent"
       FRONT_HOST: ${FRONT_HOST:-user-ui}
       FRONT_PORT: ${FRONT_PORT:-5002}
-    networks: [sdai-net]
-
     
-networks:
-  sdai-net:
-    driver: bridge
