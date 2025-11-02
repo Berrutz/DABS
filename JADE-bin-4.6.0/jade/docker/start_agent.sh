@@ -11,8 +11,8 @@ OUT_DIR="${OUT_DIR:-/app/out}"               # output folder for .class files
 MAIN_HOST="${MAIN_HOST:-jade-main}"          # hostname/IP of the JADE Main
 PORT="${PORT:-1099}"                         # JADE Main IMTP/RMI port
 PUBLIC_HOST="${PUBLIC_HOST:-${COMPOSE_SERVICE:-jade-agent}}"     # hostname/IP advertised for callbacks
-LOCAL_HOST="${LOCAL_HOST:-$PUBLIC_HOST}"                         # JADE local-host parameter
-LOCAL_PORT="${LOCAL_PORT:-$PORT}"
+LOCAL_HOST="${LOCAL_HOST:-}"                 # optional override for JADE local-host binding
+LOCAL_PORT="${LOCAL_PORT:-}"                 # optional override for JADE local-port binding
 PLATFORM_NAME="${PLATFORM_NAME:-CoordinatorPlatform}"
 
 # === Java classpath ===
@@ -39,8 +39,8 @@ echo "[INFO] MAIN_HOST    $MAIN_HOST"
 echo "[INFO] PORT         $PORT"
 echo "[INFO] PUBLIC_HOST  $PUBLIC_HOST"
 echo "[INFO] PLATFORM     $PLATFORM_NAME"
-echo "[INFO] LOCAL_HOST   $LOCAL_HOST"
-echo "[INFO] LOCAL_PORT   $LOCAL_PORT"
+[ -n "$LOCAL_HOST" ] && echo "[INFO] LOCAL_HOST   $LOCAL_HOST"
+[ -n "$LOCAL_PORT" ] && echo "[INFO] LOCAL_PORT   $LOCAL_PORT"
 
 # === Cleanup ===
 echo "[🧹 Cleaning .class files]"
@@ -103,15 +103,30 @@ fi
 
 echo "[🚀 Starting agents '$AGENTS' connected to $MAIN_HOST:$PORT]"
 
-exec java \
-  -Dfile.encoding=UTF-8 \
-  -Djava.library.path="$LD_LIBRARY_PATH" \
-  -Djava.rmi.server.hostname="$PUBLIC_HOST" \
-  -cp "$OUT_DIR:$JADE_CP" \
-  jade.Boot \
-    -container \
-    -local-host "$LOCAL_HOST" \
-    -local-port "$LOCAL_PORT" \
-    -host "$MAIN_HOST" \
-    -port "$PORT" \
-    "$AGENTS"
+JAVA_CMD=(
+  java
+  -Dfile.encoding=UTF-8
+  -Djava.library.path="$LD_LIBRARY_PATH"
+  -Djava.rmi.server.hostname="$PUBLIC_HOST"
+  -cp "$OUT_DIR:$JADE_CP"
+  jade.Boot
+  -container
+)
+
+if [ -n "$LOCAL_HOST" ]; then
+  JAVA_CMD+=(-local-host "$LOCAL_HOST")
+fi
+if [ -n "$LOCAL_PORT" ]; then
+  JAVA_CMD+=(-local-port "$LOCAL_PORT")
+fi
+
+JAVA_CMD+=(
+  -host "$MAIN_HOST"
+  -port "$PORT"
+)
+
+if [ -n "$AGENTS" ]; then
+  JAVA_CMD+=("$AGENTS")
+fi
+
+exec "${JAVA_CMD[@]}"

@@ -52,19 +52,16 @@ services:
     extends:
       service: jade-agent         # reuse base image/entrypoint/env
     container_name: user-ui
+    network_mode: host            # share host stack to expose the Tailscale interface
     environment:
       AGENTS: "user:agents.UserAgent"
       UI_AUTOSTART: "1"          # auto-start npm in the background
       QUERY_HOST: ${QUERY_HOST:-query}
       QUERY_PORT: ${QUERY_PORT:-5001}
-    ports:
-      - "1099:1099"               # IMTP/RMI
-      - "7778:7778"               # HTTP-MTP
-      - "4000:4000"               # Express GUI
-      - "5000:5000"               # UserAgent socket
-      - "5001:5001"               # QueryAgent socket
-      - "5002:5002"               # Logic -> GUI socket
-    networks: [sdai-net]
+      LOCAL_HOST: ${LOCAL_HOST:-}
+      LOCAL_PORT: ${LOCAL_PORT:-}
+    ports: []
+    networks: []
 
   # ===== PRESET: ParserAgent =====
   parser:
