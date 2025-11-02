@@ -37,7 +37,7 @@ services:
       ROLE: "agent"
       MAIN_HOST: ${MAIN_HOST:-100.84.182.11}
       PORT: "1099"
-      PUBLIC_HOST: ${PUBLIC_HOST:-100.96.79.2}
+      PUBLIC_HOST: ${PUBLIC_HOST:-$${COMPOSE_SERVICE}}
       SRC_DIR: "/app/"
       OUT_DIR: "/app/out"
       LIB_DIR: "/app/web-ui/lib"
@@ -55,8 +55,8 @@ services:
     environment:
       AGENTS: "user:agents.UserAgent"
       UI_AUTOSTART: "1"          # auto-start npm in the background
-      QUERY_HOST: "query"
-      QUERY_PORT: "5001"
+      QUERY_HOST: ${QUERY_HOST:-query}
+      QUERY_PORT: ${QUERY_PORT:-5001}
     ports:
       - "1099:1099"               # IMTP/RMI
       - "7778:7778"               # HTTP-MTP
@@ -74,8 +74,8 @@ services:
     profiles: ["agent"]
     environment:
       AGENTS: "parser:agents.ParserAgent"
-      FRONT_HOST: "user-ui"
-      FRONT_PORT: "5002"
+      FRONT_HOST: ${FRONT_HOST:-user-ui}
+      FRONT_PORT: ${FRONT_PORT:-5002}
     networks: [sdai-net]
 
   # ===== PRESET: LogicAgent =====
@@ -86,8 +86,8 @@ services:
     profiles: ["agent"]
     environment:
       AGENTS: "logic:agents.LogicAgent"
-      FRONT_HOST: "user-ui"
-      FRONT_PORT: "5002"
+      FRONT_HOST: ${FRONT_HOST:-user-ui}
+      FRONT_PORT: ${FRONT_PORT:-5002}
     networks: [sdai-net]
 
   # ===== PRESET: QueryAgent =====
@@ -98,8 +98,8 @@ services:
     profiles: ["agent"]
     environment:
       AGENTS: "query:agents.QueryAgent"
-      FRONT_HOST: "user-ui"
-      FRONT_PORT: "5002"
+      FRONT_HOST: ${FRONT_HOST:-user-ui}
+      FRONT_PORT: ${FRONT_PORT:-5002}
     networks: [sdai-net]
 
     
