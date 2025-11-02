@@ -1,55 +1,59 @@
-# Tailscale Deployment Steps
+# Guida al Deploy tramite Tailscale
 
-## Shared prerequisites
-- Install Docker Compose v2 and Tailscale on both machines.
-- Join both hosts to the same Tailscale network and note the IPs:
-  - `MAIN_TAIL` -> Tailscale IP of the machine that will run the JADE main container (example `100.84.182.11`).
-  - `UI_TAIL`   -> Tailscale IP of the machine that will host the remote `user-ui` container.
-- Allow the following ports through any local firewall: `1099`, `7778`, `4000`, `5000`, `5001`, `5002`, `4100`.
+## Prerequisiti comuni
+- Installa Docker Compose v2 e il client Tailscale su **entrambi** i computer.
+- Fai accedere i due host alla stessa rete Tailscale e annota gli indirizzi assegnati:
+  - `MAIN_TAIL = 100.84.182.11` → macchina che eseguirà il container `jade-main`.
+  - `UI_TAIL   = 100.96.79.2` → macchina che eseguirà il container `user-ui`.
+- Apri nei firewall locali le porte `1099`, `7778`, `4000`, `5000`, `5001`, `5002`, `4100`.
 
-## Machine A - JADE Main + backend agents
-1. `cd` into `JADE-bin-4.6.0/jade/docker`.
-2. Build (or refresh) the shared image the first time:
+Suggerimento: per verificare al volo le variabili, in PowerShell usa `echo $env:MAIN_TAIL`. Ricordati che le variabili impostate con `$env:VAR = "valore"` durano solo per la sessione corrente del terminale.
+
+## Macchina A – JADE Main + agenti di backend (`MAIN_TAIL`)
+1. Posizionati nella cartella `JADE-bin-4.6.0/jade/docker`.
+2. Prepara (o aggiorna) l'immagine condivisa:
    ```powershell
    docker compose build jade-main
    ```
-3. Start the JADE Main (advertise its Tailscale IP so remote containers can call back):
+3. Avvia il Main dichiarando l'IP Tailscale pubblico:
    ```powershell
-   $env:PUBLIC_HOST = "$MAIN_TAIL"
+   $env:PUBLIC_HOST = "100.84.182.11"
    docker compose --profile main up -d jade-main
    ```
-   The monitor UI becomes reachable at `http://localhost:4100/monitor` or `http://$MAIN_TAIL:4100/monitor`.
-4. Launch the backend JADE agents on the same host, telling them where the remote GUI lives for callbacks:
+   Dashboard del monitor: `http://localhost:4100/monitor` oppure `http://100.84.182.11:4100/monitor`.
+4. Avvia gli agenti server-side indicando dove risiede l'interfaccia remota:
    ```powershell
-   $env:PUBLIC_HOST = ""
-   $env:FRONT_HOST  = "$UI_TAIL"
+   $env:PUBLIC_HOST = ""        # lascia vuoto: gli agenti useranno i nomi Docker interni
+   $env:FRONT_HOST  = "100.96.79.2"
    docker compose --profile agent up -d parser logic query
    ```
-   (Leave `PUBLIC_HOST` empty here so the containers keep advertising their Docker service names.)
-5. When changes are made to the Java/Node sources, rebuild with `docker compose build jade-main` and restart the required services.
+5. Dopo modifiche a codice Java/Node ricompila e riavvia i servizi interessati:
+   ```powershell
+   docker compose build jade-main
+   docker compose restart jade-main parser logic query
+   ```
 
-## Machine B - Remote GUI + UserAgent
-1. Copy the project (or the `JADE-bin-4.6.0/jade` folder) to this machine and `cd` into `JADE-bin-4.6.0/jade/docker`.
-2. Build the image if it is not already available locally:
+## Macchina B – Interfaccia utente + UserAgent (`UI_TAIL`)
+1. Copia il progetto (almeno la cartella `JADE-bin-4.6.0/jade`) su questa macchina e porta il terminale in `JADE-bin-4.6.0/jade/docker`.
+2. Se l'immagine non è presente localmente, compilala:
    ```powershell
    docker compose build jade-agent
    ```
-3. Start the remote UI/agent using the Tailscale-aware override so ports 1099/7778 are exposed back to the host:
+3. Avvia l'interfaccia remota con il file compose Tailscale e gli IP reali:
    ```powershell
-   $env:PUBLIC_HOST = "$UI_TAIL"
-   $env:MAIN_HOST   = "$MAIN_TAIL"
-   $env:QUERY_HOST  = "$MAIN_TAIL"
+   $env:PUBLIC_HOST = "100.96.79.2"
+   $env:MAIN_HOST   = "100.84.182.11"
+   $env:QUERY_HOST  = "100.84.182.11"
    docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile agent up -d user-ui
    ```
-   - The web UI is available at `http://localhost:4000` on Machine B (and at `http://$UI_TAIL:4000` for others on Tailscale).
-   - `MAIN_HOST` tells the UserAgent where to reach the JADE Main.
-   - `QUERY_HOST` directs the Node.js frontend to the QueryAgent socket that is exposed on Machine A (port `5001`).
-4. To stop the UI after use:
+   - Web UI locale su `http://localhost:4000`.
+   - Accesso via Tailscale da altre macchine su `http://100.96.79.2:4000`.
+4. Per arrestare l'interfaccia:
    ```powershell
    docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile agent down user-ui
    ```
 
-## Verification checklist
-- From Machine B, `Test-NetConnection -ComputerName $MAIN_TAIL -Port 1099` (or `nc -vz $MAIN_TAIL 1099`) succeeds.
-- The JADE monitor at `http://$MAIN_TAIL:4100/monitor` lists the remote `user` container once it is running.
-- Sending a query from the UI reaches the QueryAgent, and answers are pushed back on port `5002` without timeouts.
+## Verifiche consigliate
+- Da Macchina B: `Test-NetConnection -ComputerName 100.84.182.11 -Port 1099` (oppure `nc -vz 100.84.182.11 1099`) deve avere esito positivo.
+- La dashboard JADE su `http://100.84.182.11:4100/monitor` deve elencare l'agente `user` dopo l'avvio del container remoto.
+- Invia una query dalla UI: la risposta deve arrivare senza timeout (porte `5001/5002` operative).
