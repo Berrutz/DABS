@@ -79,14 +79,17 @@ echo "[🚀 Starting JADE Main (AMS/DF only), no agents]"
  echo "[BIND_IP]        $BIND_IP"
 
  
+   # \
+
 exec java \
   -Dfile.encoding=UTF-8 \
   -Djava.library.path="$LD_LIBRARY_PATH" \
-  -Djava.rmi.server.hostname="$PUBLIC_HOST" \
   -cp "$OUT_DIR:$JADE_CP" \
+  -Djava.rmi.server.hostname="$PUBLIC_HOST" \
   jade.Boot \
     -name "$PLATFORM_NAME" \
-    -host "$BIND_IP" \
+    -host 0.0.0.0 \
     -port "$PORT" \
-    -mtps jade.mtp.http.MessageTransportProtocol \
+    -local-host "$PUBLIC_HOST" \
+    -local-port "$PORT" \
     -agents monitor:utils.MonitorAgent

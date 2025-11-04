@@ -99,25 +99,15 @@ fi
 
 echo "[🚀 Starting agents '$AGENTS' connected to $MAIN_HOST:$PORT]"
 
-if [ -n "$AGENTS" ]; then
-  exec java \
-    -Dfile.encoding=UTF-8 \
-    -Djava.library.path="$LD_LIBRARY_PATH" \
-    -Djava.rmi.server.hostname="$PUBLIC_HOST" \
-    -cp "$OUT_DIR:$JADE_CP" \
-    jade.Boot \
-      -container \
-      -host "$MAIN_HOST" \
-      -port "$PORT" \
-      "$AGENTS"
-else
-  exec java \
-    -Dfile.encoding=UTF-8 \
-    -Djava.library.path="$LD_LIBRARY_PATH" \
-    -Djava.rmi.server.hostname="$PUBLIC_HOST" \
-    -cp "$OUT_DIR:$JADE_CP" \
-    jade.Boot \
-      -container \
-      -host "$MAIN_HOST" \
-      -port "$PORT"
-fi
+
+exec java \
+  -Dfile.encoding=UTF-8 \
+  -Djava.library.path="$LD_LIBRARY_PATH" \
+  -cp "$OUT_DIR:$JADE_CP" \
+  jade.Boot \
+    -container \
+    -host "$MAIN_HOST" \
+    -port "$PORT" \
+    -local-host "$PUBLIC_HOST" \
+    -local-port "2000" \
+    -agents "$AGENTS"

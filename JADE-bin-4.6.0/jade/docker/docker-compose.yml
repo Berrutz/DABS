@@ -51,9 +51,8 @@ services:
       - "7778:7778"
     networks: 
       - sdai-net
-
     volumes:
-      - kb-data:/app/web-ui/kb
+      - kb-data:/app/web-ui/kb  # persistent KB data
 
  # ===== PRESET: UserAgent + GUI (server.js) =====
   user-ui:
@@ -104,3 +103,6 @@ services:
 networks:
   sdai-net:
     driver: bridge
+
+volumes:
+  kb-data:
