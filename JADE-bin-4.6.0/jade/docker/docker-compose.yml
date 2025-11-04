@@ -102,5 +102,5 @@ services:
     
 # ==== NETWORKS & VOLUMES ====
 networks:
-  jade-net:
+  sdai-net:
     driver: bridge
