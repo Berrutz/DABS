@@ -1,4 +1,4 @@
-version: "3.9"
+
 name: sdai
 services:
   tailscale:
@@ -34,7 +34,7 @@ services:
     environment:
       ROLE: "main"
       # For local usage expose the Main as "jade-main" (Docker network DNS)
-      PUBLIC_HOST: ${PUBLIC_HOST:-}
+      PUBLIC_HOST: ${PUBLIC_HOST:-jade-main}
       PORT: "1099"
       HTTP_PORT: "7778"
       SRC_DIR: "/app/"  
@@ -78,7 +78,7 @@ services:
       ROLE: "agent"
       MAIN_HOST: ${MAIN_HOST:-jade-main}
       PORT: ${PORT:-1099}
-      PUBLIC_HOST: ${AGENT_PUBLIC_HOST:-}
+      PUBLIC_HOST: ${PUBLIC_HOST:-jade-main}
       LOCAL_PORT: ${LOCAL_PORT:-2000}
       SRC_DIR: "/app/"
       OUT_DIR: "/app/out"
@@ -131,11 +131,6 @@ services:
       FRONT_PORT: ${FRONT_PORT:-5002}
 
     
-# ==== NETWORKS & VOLUMES ====
-#networks:
-#  sdai-net:
-#    driver: bridge
-
 volumes:
   kb-data:
   tailscale-state:
