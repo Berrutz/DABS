@@ -18,10 +18,7 @@ services:
       SRC_DIR: "/app/"  
       OUT_DIR: "/app/out"
       LIB_DIR: "/app/web-ui/lib"
-    ports:
-      - "1099:1099"
-      - "7778:7778"
-      - "4100:4100"               
+    network_mode: host
 
   # ===== ROLE SHORTCUT =====
 
@@ -47,6 +44,7 @@ services:
     #ports:
     #  - "1099:1099"
     #  - "7778:7778"
+    network_mode: host
     volumes:
       - kb-data:/app/web-ui/kb
 
@@ -60,11 +58,7 @@ services:
       UI_AUTOSTART: "1"          # auto-start npm in the background
       QUERY_HOST: ${QUERY_HOST:-query}
       QUERY_PORT: ${QUERY_PORT:-5001}
-    ports:
-      - "4000:4000"               # Express GUI
-      - "5000:5000"               # UserAgent socket
-      - "5001:5001"               # QueryAgent socket
-      - "5002:5002"               # Logic -> GUI socket
+    network_mode: host
 
   # ===== PRESET: ParserAgent =====
   parser:
@@ -72,6 +66,7 @@ services:
       service: jade-agent
     container_name: parser
     profiles: ["agent"]
+    network_mode: host
     environment:
       AGENTS: "parser:agents.ParserAgent"
       FRONT_HOST: ${FRONT_HOST:-user-ui}
@@ -83,6 +78,7 @@ services:
       service: jade-agent
     container_name: logic
     profiles: ["agent"]
+    network_mode: host
     environment:
       AGENTS: "logic:agents.LogicAgent"
       FRONT_HOST: ${FRONT_HOST:-user-ui}
@@ -94,15 +90,13 @@ services:
       service: jade-agent
     container_name: query
     profiles: ["agent"]
+    network_mode: host
     environment:
       AGENTS: "query:agents.QueryAgent"
       FRONT_HOST: ${FRONT_HOST:-user-ui}
       FRONT_PORT: ${FRONT_PORT:-5002}
-    ports:
-      - "5001:5001"
 
     
 
 volumes:
   kb-data:
-
