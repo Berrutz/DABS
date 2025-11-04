@@ -1,5 +1,25 @@
+version: "3.9"
 name: sdai
 services:
+  tailscale:
+    image: tailscale/tailscale:stable
+    container_name: jade-main-tailscale
+    hostname: ${TAILSCALE_HOSTNAME:-jade-main}
+    profiles: ["main"]
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    environment:
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_EXTRA_ARGS: ${TS_EXTRA_ARGS:-}
+    command: tailscaled
+    restart: unless-stopped
+
   # ===== MAIN (DF/AMS) =====
   jade-main:
     build:
@@ -8,22 +28,19 @@ services:
     image: sdai:main
     container_name: jade-main
     profiles: ["main"]
+    depends_on:
+      - tailscale
+    network_mode: "service:tailscale"
     environment:
       ROLE: "main"
       # For local usage expose the Main as "jade-main" (Docker network DNS)
-      PUBLIC_HOST: ${PUBLIC_HOST:-jade-main}
-      # For the Tailscale variant use docker-compose.tailscale.yml
+      PUBLIC_HOST: ${PUBLIC_HOST:-}
       PORT: "1099"
       HTTP_PORT: "7778"
       SRC_DIR: "/app/"  
       OUT_DIR: "/app/out"
       LIB_DIR: "/app/web-ui/lib"
-    ports:
-      - "1099:1099"
-      - "7778:7778"
-      - "4100:4100"               # dashboard monitor for Main
-    networks: 
-      - sdai-net
+    # Network namespace is shared with the Tailscale sidecar
 
   # ===== ROLE SHORTCUT =====
 
@@ -100,9 +117,10 @@ services:
 
     
 # ==== NETWORKS & VOLUMES ====
-networks:
-  sdai-net:
-    driver: bridge
+#networks:
+#  sdai-net:
+#    driver: bridge
 
 volumes:
   kb-data:
+  tailscale-state:

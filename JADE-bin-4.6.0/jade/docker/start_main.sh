@@ -71,15 +71,17 @@ fi
 # === Start JADE platform ONLY (AMS/DF), no agents ===
 echo "[🚀 Starting JADE Main (AMS/DF only), no agents]"
  # Determine container local IP for JADE bind
- if [ -z "${BIND_IP:-}" ]; then
-   BIND_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
-   [ -z "$BIND_IP" ] && BIND_IP="$(hostname -i 2>/dev/null | awk '{print $1}')"
-   [ -z "$BIND_IP" ] && BIND_IP="127.0.0.1"
- fi
- echo "[BIND_IP]        $BIND_IP"
+if [ -z "${BIND_IP:-}" ]; then
+  BIND_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  [ -z "$BIND_IP" ] && BIND_IP="$(hostname -i 2>/dev/null | awk '{print $1}')"
+  [ -z "$BIND_IP" ] && BIND_IP="127.0.0.1"
+fi
 
- 
-   # \
+
+echo "[BIND_IP]        $BIND_IP"
+echo "[PUBLIC_HOST]    $PUBLIC_HOST"
+
+PUBLIC_HOST=100.119.238.51
 
 exec java \
   -Dfile.encoding=UTF-8 \
