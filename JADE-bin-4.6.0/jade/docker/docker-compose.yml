@@ -18,6 +18,10 @@ services:
       SRC_DIR: "/app/"  
       OUT_DIR: "/app/out"
       LIB_DIR: "/app/web-ui/lib"
+    ports:
+      - "1099:1099"
+      - "7778:7778"
+      - "4100:4100"               # dashboard monitor for Main
     network_mode: host
 
   # ===== ROLE SHORTCUT =====
