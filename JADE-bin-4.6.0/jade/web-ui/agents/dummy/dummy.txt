@@ -1,8 +1,8 @@
+To build :
+
 javac --release 8 -encoding UTF-8 -cp web-ui/lib/jade.jar -d web-ui/agents/ web-ui/agents/DummyAgent.java 
 java 
 -DFile
-
-
 
 
 Run Main :
@@ -15,6 +15,7 @@ java
 
 
 Run Agent :
+
 java -cp "web-ui/agents:web-ui/lib/jade.jar" jade.Boot 
 -container -host 100.111.85.92 
 -port 1099 -local-host 100.76.138.54 
