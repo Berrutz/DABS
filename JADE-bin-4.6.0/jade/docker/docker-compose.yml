@@ -44,6 +44,25 @@ services:
 
   # ===== ROLE SHORTCUT =====
 
+  tailscale-agent:
+    image: tailscale/tailscale:stable
+    container_name: jade-agent-tailscale
+    hostname: ${AGENT_TAILSCALE_HOSTNAME:-jade-agent}
+    profiles: ["agent"]
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun
+    volumes:
+      - tailscale-agent-state:/var/lib/tailscale
+    environment:
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${AGENT_TS_AUTHKEY:-${TS_AUTHKEY:-}}
+      TS_EXTRA_ARGS: ${AGENT_TS_EXTRA_ARGS:-${TS_EXTRA_ARGS:-}}
+    command: tailscaled
+    restart: unless-stopped
+
   jade-agent:
     # If the image is not present locally, build it using the same Dockerfile as the main
     build:
@@ -52,22 +71,18 @@ services:
     image: sdai:main
     container_name: jade-agent
     profiles: ["agent"]
+    depends_on:
+      - tailscale-agent
+    network_mode: "service:tailscale-agent"
     environment:
       ROLE: "agent"
-      # Connect to the local Main by service name
       MAIN_HOST: ${MAIN_HOST:-jade-main}
-      # Default advertised host is the compose service name; override for remote hosts
-      PUBLIC_HOST: ${PUBLIC_HOST:-$${COMPOSE_SERVICE}}
-      PORT: "1099"
+      PORT: ${PORT:-1099}
+      PUBLIC_HOST: ${AGENT_PUBLIC_HOST:-}
+      LOCAL_PORT: ${LOCAL_PORT:-2000}
       SRC_DIR: "/app/"
       OUT_DIR: "/app/out"
       LIB_DIR: "/app/web-ui/lib"
-      MAIN_MONITOR_AUTOSTART : "1"   # auto-start monitor in the background
-    ports:
-      - "1099:1099"
-      - "7778:7778"
-    networks: 
-      - sdai-net
     volumes:
       - kb-data:/app/web-ui/kb  # persistent KB data
 
@@ -124,3 +139,4 @@ services:
 volumes:
   kb-data:
   tailscale-state:
+  tailscale-agent-state:

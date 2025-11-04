@@ -29,7 +29,4 @@ jade.Boot
 
 Run Agent :
 
-java -cp "web-ui/agents:web-ui/lib/jade.jar" jade.Boot 
--container -host 100.111.85.92 
--port 1099 -local-host 100.76.138.54 
--local-port 2000 -agents Dummy:dummy.DummyAgent
+java -cp "web-ui/agents:web-ui/lib/jade.jar" jade.Boot -container -host 100.119.238.51 -port 1099 -local-host 100.76.138.54  -local-port 2000 -agents Dummy:dummy.DummyAgent
