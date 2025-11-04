@@ -103,8 +103,6 @@ fi
 
 echo "[🚀 Starting agents '$AGENTS' connected to $MAIN_HOST:$PORT]"
 
-PUBLIC_HOST=100.77.97.42
-
 exec java \
   -Dfile.encoding=UTF-8 \
   -Djava.library.path="$LD_LIBRARY_PATH" \
