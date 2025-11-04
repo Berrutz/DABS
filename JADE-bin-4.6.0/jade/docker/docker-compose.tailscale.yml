@@ -1,5 +1,7 @@
 name: sdai
 services:
+
+
   # ===== MAIN (DF/AMS) =====
   jade-main:
     build:
@@ -8,6 +10,7 @@ services:
     image: sdai:main
     container_name: jade-main
     profiles: ["main"]
+    network_mode: host            # share host stack to expose the Tailscale interface
     environment:
       ROLE: "main"
       PUBLIC_HOST: ${PUBLIC_HOST:-100.84.182.11}
@@ -21,8 +24,6 @@ services:
       - "1099:1099"
       - "7778:7778"
       - "4100:4100"               # dashboard monitor for Main
-    networks:
-      - sdai-net
 
   # ===== ROLE SHORTCUT =====
 
@@ -34,6 +35,7 @@ services:
     image: sdai:main
     container_name: jade-agent
     profiles: ["agent"]
+    network_mode: host            # share host stack to expose the Tailscale interface
     environment:
       ROLE: "agent"
       MAIN_HOST: ${MAIN_HOST:-100.84.182.11}
@@ -46,8 +48,7 @@ services:
     ports:
       - "1099:1099"               # IMTP/RMI
       - "7778:7778"               # HTTP-MTP
-    networks:
-      - sdai-net
+
 
  # ===== PRESET: UserAgent + GUI (server.js) =====
   user-ui:
@@ -98,6 +99,3 @@ services:
       FRONT_HOST: ${FRONT_HOST:-user-ui}
       FRONT_PORT: ${FRONT_PORT:-5002}
     
-networks:
-  sdai-net:
-    driver: bridge
