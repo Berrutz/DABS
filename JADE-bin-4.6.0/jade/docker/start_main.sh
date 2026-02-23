@@ -68,15 +68,30 @@ if [ "${MAIN_MONITOR_AUTOSTART:-1}" = "1" ]; then
 fi
 
 
+# === Wait for PUBLIC_HOST to be a local interface (needed when sharing Tailscale namespace) ===
+# If PUBLIC_HOST looks like a routable IP (not a hostname), wait until it appears on a local interface.
+if echo "$PUBLIC_HOST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+  echo "[⏳ Network] Waiting for $PUBLIC_HOST to appear on a local interface..."
+  MAX_WAIT=60
+  WAITED=0
+  while ! ip addr show 2>/dev/null | grep -q "$PUBLIC_HOST"; do
+    if [ "$WAITED" -ge "$MAX_WAIT" ]; then
+      echo "[❌ Network] Timeout: $PUBLIC_HOST never appeared. Proceeding anyway."
+      break
+    fi
+    sleep 2
+    WAITED=$((WAITED + 2))
+  done
+  echo "[✅ Network] $PUBLIC_HOST is up (waited ${WAITED}s)"
+fi
+
 # === Start JADE platform ONLY (AMS/DF), no agents ===
 echo "[🚀 Starting JADE Main (AMS/DF only), no agents]"
- # Determine container local IP for JADE bind
 if [ -z "${BIND_IP:-}" ]; then
   BIND_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
   [ -z "$BIND_IP" ] && BIND_IP="$(hostname -i 2>/dev/null | awk '{print $1}')"
   [ -z "$BIND_IP" ] && BIND_IP="127.0.0.1"
 fi
-
 
 echo "[BIND_IP]        $BIND_IP"
 echo "[PUBLIC_HOST]    $PUBLIC_HOST"
