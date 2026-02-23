@@ -183,6 +183,12 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml --profile main 
 docker compose -f docker-compose.yml -f docker-compose.local.yml --profile agent up -d
 ```
 
+You should see exactly **5 containers** (no Tailscale sidecars):
+
+```
+jade-main    user-ui    parser    logic    query
+```
+
 ### 5. Open the GUI
 
 Navigate to **http://localhost:4000** in your browser.
@@ -238,14 +244,17 @@ OPENROUTER_API_KEY=sk-or-v1-your-actual-key-here
 ### 3. Machine A — Start the main platform
 
 ```bash
-docker compose --profile main up -d --build
+docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile main up -d --build
 ```
 
 ### 4. Machine B — Start all agents
 
 ```bash
-docker compose --profile agent up -d
+docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile agent up -d
 ```
+
+You should see on Machine A: `jade-main` + `jade-main-tailscale`
+You should see on Machine B: `user-ui`, `parser`, `logic`, `query`, `jade-agent` + `jade-agent-tailscale`
 
 ### 5. Open the GUI
 
@@ -256,7 +265,7 @@ Navigate to **http://\<tailscale-ip-of-machine-B\>:4000** in your browser.
 On each machine:
 
 ```bash
-docker compose --profile main --profile agent down
+docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile main --profile agent down
 ```
 
 ---
@@ -309,8 +318,9 @@ DABS/
 ├── JADE-bin-4.6.0/jade/
 │   ├── docker/
 │   │   ├── Dockerfile                 # Container image (Java 8 + SWI-Prolog + Node.js 18)
-│   │   ├── docker-compose.yml         # Base service definitions (main, agents, user-ui)
-│   │   ├── docker-compose.local.yml   # Override for single-machine local testing
+│   │   ├── docker-compose.yml         # Base — pure JADE containers, no Tailscale
+│   │   ├── docker-compose.local.yml   # Local overlay — exposes port 4000
+│   │   ├── docker-compose.tailscale.yml # Tailscale overlay — adds VPN sidecars
 │   │   ├── .env                       # Secrets & network config (not committed)
 │   │   ├── entrypoint.sh              # Container entrypoint (role dispatcher)
 │   │   ├── start_main.sh              # Starts JADE main platform
