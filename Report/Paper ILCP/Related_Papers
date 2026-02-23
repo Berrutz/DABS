@@ -1,0 +1,83 @@
+
+
+1. On LLM-generated Logic Programs and their Inference Execution Methods
+
+https://arxiv.org/pdf/2502.09209
+
+Autore: Paul Tarau
+Orario: 11:00
+Questo articolo esplora l'uso dei LLM per generare programmi logici, come quelli in Prolog, 
+a partire da input in linguaggio naturale, focalizzandosi su metodi di esecuzione dell'inferenza
+
+DUAL HORN CLAUSE 
+
+Vogliamo che la premessa risulti falsa se **TUTTE** le sue conseguenze sono false.
+Questo ci serve per dire:
+“Siccome tutte le conseguenze sono sbagliate o pericolose, allora anche il comportamento iniziale è sbagliato”.
+
+Esempio partiamo da una frase in linguaggio naturale (es: "Guidare troppo vicino ad altri veicoli"), 
+la diamo in pasto a un LLM tipo ChatGPT-4, e gli chiediamo:
+"Quali sono tutte le conseguenze negative di questo comportamento?"
+Il LLM ti risponde con una lista (es: rischio incidenti, multe, stress…). 
+Queste vengono codificate come clausole Dual Horn, dove la premessa è il comportamento, 
+e le conseguenze sono le cose brutte che ne derivano.
+
+NE BASTA UNA VERA NELLE CONSEGUENZE E LA PREMESSSA DIVENTA VERA , DEVONO ESSERE TUTTE LE FALSE LE CONSEGUENZE
+
+Es prolog :
+'dormire 3 ore a notte' =>
+  'perdita di concentrazione';
+  'rischio di burnout';
+  'problemi di salute'.
+
+'perdita di concentrazione' => false.
+'rischio di burnout' => false.
+'problemi di salute' => false.
+
+Quindi il sistema conclude:
+
+?- false:'dormire 3 ore a notte'.
+true
+
+Esempio VERO con piu livelli ricorsivi come nel Paper:
+
+'saltare la colazione' =>
+  'calo di energia';
+  'difficoltà di concentrazione';
+  'possibile mal di testa';
+  'leggerezza fisica'.
+
+'calo di energia' => false.
+'difficoltà di concentrazione' => false.
+'possibile mal di testa' => false.
+
+'leggerezza fisica' =>  % livllo ricorsivo 
+  'aumento di attenzione'.
+
+'aumento di attenzione' => true.  % Effetto positivo confermato   % 👈 questa è accettabile!
+
+
+Quindi la falsificazione fallisce!
+?- false:'saltare la colazione'.
+false.  % ❌ Non possiamo dire che è falso!
+
+Questo rende i Dual Horn programs uno strumento sfumato e utile per la valutazione razionale di ipotesi, 
+non solo per dire "giusto/sbagliato", ma anche quando non è chiaro.
+
+
+--------------------------------------------------------------
+
+2. Logical Lease Litigation: Prolog and LLMs for Rental Law Compliance in New York
+
+Autori: Sanskar Sehgal e Yanhong A. Liu
+Orario: 11:45
+Questo lavoro presenta un sistema che combina LLM per l'estrazione di informazioni da descrizioni legali 
+in linguaggio naturale e Prolog per il ragionamento giuridico, applicato alla conformità delle leggi sugli affitti a New York.​
+
+
+3. LP-LM: No Hallucinations in Question Answering with Logic Programming
+
+Autori: Katherine Wu e Yanhong Liu
+Orario: 12:00
+L'articolo introduce un approccio che integra LLM con la programmazione logica 
+per migliorare l'accuratezza nelle risposte a domande, riducendo le allucinazioni tipiche dei modelli linguistici.
