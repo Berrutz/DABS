@@ -83,6 +83,7 @@ services:
       SRC_DIR: "/app/"
       OUT_DIR: "/app/out"
       LIB_DIR: "/app/web-ui/lib"
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
     volumes:
       - kb-data:/app/web-ui/kb  # persistent KB data
 

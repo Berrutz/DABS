@@ -81,8 +81,6 @@ fi
 echo "[BIND_IP]        $BIND_IP"
 echo "[PUBLIC_HOST]    $PUBLIC_HOST"
 
-PUBLIC_HOST=100.119.238.51
-
 exec java \
   -Dfile.encoding=UTF-8 \
   -Djava.library.path="$LD_LIBRARY_PATH" \
