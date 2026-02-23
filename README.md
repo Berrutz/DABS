@@ -160,10 +160,10 @@ cd DABS
 
 ### 2. Set your API key
 
-Open `JADE-bin-4.6.0/jade/web-ui/utils/LLMService.java` and replace the API key on **line 18**:
+Create (or edit) the `.env` file in the **project root** and add your [OpenRouter](https://openrouter.ai/) API key:
 
-```java
-private static final String API_KEY = "sk-or-v1-YOUR_KEY_HERE"; // Replace with your key
+```
+OPENROUTER_API_KEY=sk-or-v1-your-actual-key-here
 ```
 
 ### 3. Start the platform
@@ -234,12 +234,9 @@ docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile m
 
 ## Setup Notes
 
-> **No `.gitignore` exists.** If you fork this repo, create one to exclude:
-> `out/`, `node_modules/`, `.env`, `*.class`
-
-> **No `.env` file.** The OpenRouter API key is currently hardcoded in
-> [`LLMService.java:18`](JADE-bin-4.6.0/jade/web-ui/utils/LLMService.java#L18).
-> Replace it with your own key before building.
+> **`.env` file required.** Copy the `.env` template in the project root and set your
+> OpenRouter API key before building. The `.env` file is excluded from version control
+> by `.gitignore`.
 
 > **No separate requirements file.** All dependencies (Java 8, SWI-Prolog, Node.js 18, npm packages)
 > are installed inside the Docker image via the [Dockerfile](JADE-bin-4.6.0/jade/docker/Dockerfile).
@@ -300,4 +297,8 @@ DABS/
 
 ## License
 
+![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red)
+
 This project was developed as part of a Master's course on Distributed Agent-Based Systems at the University of Calabria (Unical).
+
+All Rights Reserved — see [LICENSE](LICENSE) for details.

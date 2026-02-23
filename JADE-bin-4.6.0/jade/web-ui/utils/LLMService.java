@@ -3,7 +3,9 @@ package utils;
 import okhttp3.*;
 import org.json.*;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
@@ -15,10 +17,46 @@ import java.util.regex.Pattern;
 
 public class LLMService {
     private static final OkHttpClient httpClient = new OkHttpClient();
-    private static final String API_KEY = "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"; // Replace with your key
+    private static final String API_KEY = loadApiKey();
     private static final String API_URL = "https://openrouter.ai/api/v1/chat/completions";
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static final String KB_FILE = "web-ui/kb/knowledge.pl";
+
+    private static String loadApiKey() {
+        // Try multiple .env locations: project root (when running in Docker /app)
+        // and relative paths for local development
+        String[] candidates = {"../../.env", ".env", "../.env", "../../../.env"};
+        for (String path : candidates) {
+            File envFile = new File(path);
+            if (envFile.exists()) {
+                try (BufferedReader reader = new BufferedReader(new FileReader(envFile))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        line = line.trim();
+                        if (line.startsWith("#") || line.isEmpty()) continue;
+                        if (line.startsWith("OPENROUTER_API_KEY=")) {
+                            String key = line.substring("OPENROUTER_API_KEY=".length()).trim();
+                            if (!key.isEmpty() && !key.equals("sk-or-v1-YOUR_KEY_HERE")) {
+                                System.out.println("[LLMService] API key loaded from " + envFile.getAbsolutePath());
+                                return key;
+                            }
+                        }
+                    }
+                } catch (IOException e) {
+                    // Try next candidate
+                }
+            }
+        }
+        // Also check environment variable as fallback
+        String envVar = System.getenv("OPENROUTER_API_KEY");
+        if (envVar != null && !envVar.isEmpty()) {
+            System.out.println("[LLMService] API key loaded from environment variable");
+            return envVar;
+        }
+        System.err.println("[LLMService] ERROR: OPENROUTER_API_KEY not found. " +
+                "Create a .env file in the project root with: OPENROUTER_API_KEY=your-key-here");
+        return "";
+    }
 
     // Callback to handle async response
     public interface LLMCallback {

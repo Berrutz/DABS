@@ -1,0 +1,22 @@
+# Environment variables (API keys, secrets)
+.env
+JADE-bin-4.6.0/jade/docker/.env
+
+# Java
+*.class
+out/
+
+# Node.js
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/
