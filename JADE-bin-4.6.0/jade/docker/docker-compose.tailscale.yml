@@ -1,0 +1,104 @@
+# Tailscale VPN overlay for distributed two-machine deployment.
+# Adds Tailscale sidecar containers and overrides networking so each JADE
+# container shares its sidecar's network namespace (and thus its VPN IP).
+#
+# All agent containers share jade-agent-tailscale's namespace, so they
+# communicate with each other via localhost instead of Docker DNS names.
+#
+# Usage — Machine A (main platform):
+#   docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile main up -d --build
+#
+# Usage — Machine B (agents):
+#   docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile agent up -d
+#
+# Required in docker/.env on both machines:
+#   TS_AUTHKEY, PUBLIC_HOST (this machine's Tailscale IP), MAIN_HOST (Machine A's Tailscale IP)
+
+services:
+
+  # ----- Main sidecar -----
+  tailscale:
+    image: tailscale/tailscale:stable
+    container_name: jade-main-tailscale
+    hostname: ${TAILSCALE_HOSTNAME:-jade-main}
+    profiles: ["main"]
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    environment:
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_EXTRA_ARGS: ${TS_EXTRA_ARGS:-}
+    command: tailscaled
+    restart: unless-stopped
+
+  jade-main:
+    depends_on:
+      - tailscale
+    network_mode: "service:tailscale"
+
+  # ----- Agent sidecar -----
+  tailscale-agent:
+    image: tailscale/tailscale:stable
+    container_name: jade-agent-tailscale
+    hostname: ${AGENT_TAILSCALE_HOSTNAME:-jade-agent}
+    profiles: ["agent"]
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun
+    volumes:
+      - tailscale-agent-state:/var/lib/tailscale
+    environment:
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${AGENT_TS_AUTHKEY:-${TS_AUTHKEY:-}}
+      TS_EXTRA_ARGS: ${AGENT_TS_EXTRA_ARGS:-${TS_EXTRA_ARGS:-}}
+    command: tailscaled
+    restart: unless-stopped
+    ports:
+      - "4000:4000"   # user-ui shares this namespace, so the port is published here
+
+  # All agent containers share jade-agent-tailscale's network namespace.
+  # Service DNS names don't resolve inside a shared namespace — use localhost.
+  jade-agent:
+    depends_on:
+      - tailscale-agent
+    network_mode: "service:tailscale-agent"
+
+  user-ui:
+    depends_on:
+      - tailscale-agent
+    network_mode: "service:tailscale-agent"
+    environment:
+      QUERY_HOST: "localhost"
+      FRONT_HOST: "localhost"
+
+  parser:
+    depends_on:
+      - tailscale-agent
+    network_mode: "service:tailscale-agent"
+    environment:
+      FRONT_HOST: "localhost"
+
+  logic:
+    depends_on:
+      - tailscale-agent
+    network_mode: "service:tailscale-agent"
+    environment:
+      FRONT_HOST: "localhost"
+
+  query:
+    depends_on:
+      - tailscale-agent
+    network_mode: "service:tailscale-agent"
+    environment:
+      FRONT_HOST: "localhost"
+
+volumes:
+  tailscale-state:
+  tailscale-agent-state:

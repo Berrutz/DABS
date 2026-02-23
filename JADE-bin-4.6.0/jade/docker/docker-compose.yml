@@ -1,102 +1,59 @@
-
 name: sdai
-services:
-  tailscale:
-    image: tailscale/tailscale:stable
-    container_name: jade-main-tailscale
-    hostname: ${TAILSCALE_HOSTNAME:-jade-main}
-    profiles: ["main"]
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    devices:
-      - /dev/net/tun
-    volumes:
-      - tailscale-state:/var/lib/tailscale
-    environment:
-      TS_STATE_DIR: /var/lib/tailscale
-      TS_AUTHKEY: ${TS_AUTHKEY:-}
-      TS_EXTRA_ARGS: ${TS_EXTRA_ARGS:-}
-    command: tailscaled
-    restart: unless-stopped
 
-  # ===== MAIN (DF/AMS) =====
+# Base compose — pure JADE containers, standard Docker networking.
+# Works as-is for local single-machine use (together with docker-compose.local.yml).
+# For distributed Tailscale deployment, layer docker-compose.tailscale.yml on top.
+
+services:
+
+  # ===== MAIN (DF/AMS + MonitorAgent) =====
   jade-main:
     build:
-      context: ..   # build from the "jade/" root
+      context: ..
       dockerfile: docker/Dockerfile
     image: sdai:main
     container_name: jade-main
     profiles: ["main"]
-    depends_on:
-      - tailscale
-    network_mode: "service:tailscale"
     environment:
       ROLE: "main"
-      # For local usage expose the Main as "jade-main" (Docker network DNS)
       PUBLIC_HOST: ${PUBLIC_HOST:-jade-main}
       PORT: "1099"
       HTTP_PORT: "7778"
-      SRC_DIR: "/app/"  
       OUT_DIR: "/app/out"
       LIB_DIR: "/app/web-ui/lib"
-    # Network namespace is shared with the Tailscale sidecar
 
-  # ===== ROLE SHORTCUT =====
-
-  tailscale-agent:
-    image: tailscale/tailscale:stable
-    container_name: jade-agent-tailscale
-    hostname: ${AGENT_TAILSCALE_HOSTNAME:-jade-agent}
-    profiles: ["agent"]
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    devices:
-      - /dev/net/tun
-    volumes:
-      - tailscale-agent-state:/var/lib/tailscale
-    environment:
-      TS_STATE_DIR: /var/lib/tailscale
-      TS_AUTHKEY: ${AGENT_TS_AUTHKEY:-${TS_AUTHKEY:-}}
-      TS_EXTRA_ARGS: ${AGENT_TS_EXTRA_ARGS:-${TS_EXTRA_ARGS:-}}
-    command: tailscaled
-    restart: unless-stopped
-
+  # ===== BASE AGENT (extended by all agent presets) =====
   jade-agent:
-    # If the image is not present locally, build it using the same Dockerfile as the main
     build:
       context: ..
       dockerfile: docker/Dockerfile
     image: sdai:main
     container_name: jade-agent
     profiles: ["agent"]
-    depends_on:
-      - tailscale-agent
-    network_mode: "service:tailscale-agent"
     environment:
       ROLE: "agent"
       MAIN_HOST: ${MAIN_HOST:-jade-main}
       PORT: ${PORT:-1099}
-      PUBLIC_HOST: ${PUBLIC_HOST:-jade-main}
-      LOCAL_PORT: ${LOCAL_PORT:-2000}
-      SRC_DIR: "/app/"
+      PUBLIC_HOST: ${PUBLIC_HOST:-jade-agent}
+      LOCAL_PORT: "2000"
       OUT_DIR: "/app/out"
       LIB_DIR: "/app/web-ui/lib"
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
     volumes:
-      - kb-data:/app/web-ui/kb  # persistent KB data
+      - kb-data:/app/web-ui/kb
 
- # ===== PRESET: UserAgent + GUI (server.js) =====
+  # ===== PRESET: UserAgent + GUI (server.js) =====
   user-ui:
     extends:
-      service: jade-agent         # reuse base image/entrypoint/env
+      service: jade-agent
     container_name: user-ui
     environment:
       AGENTS: "user:agents.UserAgent"
-      UI_AUTOSTART: "1"          # auto-start npm in the background
+      UI_AUTOSTART: "1"
       QUERY_HOST: ${QUERY_HOST:-query}
       QUERY_PORT: ${QUERY_PORT:-5001}
+      PUBLIC_HOST: ${PUBLIC_HOST:-user-ui}
+      LOCAL_PORT: "2004"
 
   # ===== PRESET: ParserAgent =====
   parser:
@@ -108,6 +65,8 @@ services:
       AGENTS: "parser:agents.ParserAgent"
       FRONT_HOST: ${FRONT_HOST:-user-ui}
       FRONT_PORT: ${FRONT_PORT:-5002}
+      PUBLIC_HOST: ${PUBLIC_HOST:-parser}
+      LOCAL_PORT: "2001"
 
   # ===== PRESET: LogicAgent =====
   logic:
@@ -119,6 +78,8 @@ services:
       AGENTS: "logic:agents.LogicAgent"
       FRONT_HOST: ${FRONT_HOST:-user-ui}
       FRONT_PORT: ${FRONT_PORT:-5002}
+      PUBLIC_HOST: ${PUBLIC_HOST:-logic}
+      LOCAL_PORT: "2002"
 
   # ===== PRESET: QueryAgent =====
   query:
@@ -130,9 +91,8 @@ services:
       AGENTS: "query:agents.QueryAgent"
       FRONT_HOST: ${FRONT_HOST:-user-ui}
       FRONT_PORT: ${FRONT_PORT:-5002}
+      PUBLIC_HOST: ${PUBLIC_HOST:-query}
+      LOCAL_PORT: "2003"
 
-    
 volumes:
   kb-data:
-  tailscale-state:
-  tailscale-agent-state:
