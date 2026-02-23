@@ -1,5 +1,25 @@
+
 name: sdai
 services:
+  tailscale:
+    image: tailscale/tailscale:stable
+    container_name: jade-main-tailscale
+    hostname: ${TAILSCALE_HOSTNAME:-jade-main}
+    profiles: ["main"]
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    environment:
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_EXTRA_ARGS: ${TS_EXTRA_ARGS:-}
+    command: tailscaled
+    restart: unless-stopped
+
   # ===== MAIN (DF/AMS) =====
   jade-main:
     build:
@@ -8,22 +28,40 @@ services:
     image: sdai:main
     container_name: jade-main
     profiles: ["main"]
+    depends_on:
+      - tailscale
+    network_mode: "service:tailscale"
     environment:
       ROLE: "main"
       # For local usage expose the Main as "jade-main" (Docker network DNS)
       PUBLIC_HOST: ${PUBLIC_HOST:-jade-main}
-      # For the Tailscale variant use docker-compose.tailscale.yml
       PORT: "1099"
       HTTP_PORT: "7778"
       SRC_DIR: "/app/"  
       OUT_DIR: "/app/out"
       LIB_DIR: "/app/web-ui/lib"
-    ports:
-      - "1099:1099"
-      - "7778:7778"
-      - "4100:4100"               
+    # Network namespace is shared with the Tailscale sidecar
 
   # ===== ROLE SHORTCUT =====
+
+  tailscale-agent:
+    image: tailscale/tailscale:stable
+    container_name: jade-agent-tailscale
+    hostname: ${AGENT_TAILSCALE_HOSTNAME:-jade-agent}
+    profiles: ["agent"]
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun
+    volumes:
+      - tailscale-agent-state:/var/lib/tailscale
+    environment:
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_AUTHKEY: ${AGENT_TS_AUTHKEY:-${TS_AUTHKEY:-}}
+      TS_EXTRA_ARGS: ${AGENT_TS_EXTRA_ARGS:-${TS_EXTRA_ARGS:-}}
+    command: tailscaled
+    restart: unless-stopped
 
   jade-agent:
     # If the image is not present locally, build it using the same Dockerfile as the main
@@ -33,22 +71,20 @@ services:
     image: sdai:main
     container_name: jade-agent
     profiles: ["agent"]
+    depends_on:
+      - tailscale-agent
+    network_mode: "service:tailscale-agent"
     environment:
       ROLE: "agent"
-      # Connect to the local Main by service name
       MAIN_HOST: ${MAIN_HOST:-jade-main}
-      # Default advertised host is the compose service name; override for remote hosts
-      PUBLIC_HOST: ${PUBLIC_HOST:-$${COMPOSE_SERVICE}}
-      PORT: "1099"
+      PORT: ${PORT:-1099}
+      PUBLIC_HOST: ${PUBLIC_HOST:-jade-main}
+      LOCAL_PORT: ${LOCAL_PORT:-2000}
       SRC_DIR: "/app/"
       OUT_DIR: "/app/out"
       LIB_DIR: "/app/web-ui/lib"
-      MAIN_MONITOR_AUTOSTART : "1"   # auto-start monitor in the background
-    #ports:
-    #  - "1099:1099"
-    #  - "7778:7778"
     volumes:
-      - kb-data:/app/web-ui/kb
+      - kb-data:/app/web-ui/kb  # persistent KB data
 
  # ===== PRESET: UserAgent + GUI (server.js) =====
   user-ui:
@@ -60,11 +96,6 @@ services:
       UI_AUTOSTART: "1"          # auto-start npm in the background
       QUERY_HOST: ${QUERY_HOST:-query}
       QUERY_PORT: ${QUERY_PORT:-5001}
-    ports:
-      - "4000:4000"               # Express GUI
-      - "5000:5000"               # UserAgent socket
-      - "5001:5001"               # QueryAgent socket
-      - "5002:5002"               # Logic -> GUI socket
 
   # ===== PRESET: ParserAgent =====
   parser:
@@ -98,11 +129,9 @@ services:
       AGENTS: "query:agents.QueryAgent"
       FRONT_HOST: ${FRONT_HOST:-user-ui}
       FRONT_PORT: ${FRONT_PORT:-5002}
-    ports:
-      - "5001:5001"
 
     
-
 volumes:
   kb-data:
-
+  tailscale-state:
+  tailscale-agent-state:
