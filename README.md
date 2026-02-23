@@ -144,7 +144,10 @@ A user wants to build and query a knowledge base about university rules:
 
 ---
 
-## Quick Start
+## Quick Start — Single Machine (Local)
+
+> All containers run on the same machine. Uses `docker-compose.local.yml` to override
+> networking so agents communicate via Docker-internal hostnames instead of Tailscale IPs.
 
 ### Prerequisites
 
@@ -160,29 +163,97 @@ cd DABS
 
 ### 2. Set your API key
 
-Create (or edit) the `.env` file in the **project root** and add your [OpenRouter](https://openrouter.ai/) API key:
+Edit `JADE-bin-4.6.0/jade/docker/.env` and set your [OpenRouter](https://openrouter.ai/) key:
 
 ```
 OPENROUTER_API_KEY=sk-or-v1-your-actual-key-here
 ```
 
-### 3. Start the platform
+### 3. Build and start the main platform
 
 ```bash
 cd JADE-bin-4.6.0/jade/docker
 
-# Start the main JADE platform (DF + AMS)
-docker compose --profile main up -d
-
-# Start all agent containers
-docker compose --profile agent up -d
+docker compose -f docker-compose.yml -f docker-compose.local.yml --profile main up -d --build
 ```
 
-### 4. Open the GUI
+### 4. Start all agents
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml --profile agent up -d
+```
+
+### 5. Open the GUI
 
 Navigate to **http://localhost:4000** in your browser.
 
-### 5. Stop everything
+### 6. Stop everything
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml --profile main --profile agent down
+```
+
+---
+
+## Distributed Deployment — Two Machines over Tailscale VPN
+
+> Each machine runs its own Tailscale sidecar. Machine A hosts the JADE main platform
+> (DF/AMS + MonitorAgent); Machine B hosts all the JADE agents and the web GUI.
+
+### Prerequisites
+
+- [Tailscale](https://tailscale.com/) installed and authenticated on both machines
+- A Tailscale auth key (reusable) from the [Tailscale admin console](https://login.tailscale.com/admin/settings/keys)
+- Both machines have Docker and Docker Compose installed
+- An [OpenRouter](https://openrouter.ai/) API key
+
+### 1. Clone the repository on both machines
+
+```bash
+git clone https://github.com/<your-username>/DABS.git
+cd DABS/JADE-bin-4.6.0/jade/docker
+```
+
+### 2. Configure `docker/.env` on both machines
+
+Edit `JADE-bin-4.6.0/jade/docker/.env` with the values for your setup:
+
+```env
+# Tailscale
+TS_AUTHKEY=tskey-auth-<your-reusable-key>
+TAILSCALE_HOSTNAME=jade-main          # only relevant on Machine A
+TS_EXTRA_ARGS=--advertise-tags=tag:prod --accept-routes
+
+# Network — use the Tailscale IPs of your machines
+PUBLIC_HOST=<tailscale-ip-of-this-machine>
+MAIN_HOST=<tailscale-ip-of-machine-A>   # agents use this to reach jade-main
+
+# OpenRouter
+OPENROUTER_API_KEY=sk-or-v1-your-actual-key-here
+```
+
+> `PUBLIC_HOST` must be set to the Tailscale IP of the machine you are running the command on.
+> `MAIN_HOST` must always point to Machine A's Tailscale IP.
+
+### 3. Machine A — Start the main platform
+
+```bash
+docker compose --profile main up -d --build
+```
+
+### 4. Machine B — Start all agents
+
+```bash
+docker compose --profile agent up -d
+```
+
+### 5. Open the GUI
+
+Navigate to **http://\<tailscale-ip-of-machine-B\>:4000** in your browser.
+
+### 6. Stop everything
+
+On each machine:
 
 ```bash
 docker compose --profile main --profile agent down
@@ -190,34 +261,14 @@ docker compose --profile main --profile agent down
 
 ---
 
-## Distributed Deployment
-
-Agents can run on **separate machines** by setting environment variables to point to remote hosts.
-
-### Machine A (Main Platform)
-
-```bash
-PUBLIC_HOST=<machine-a-ip> docker compose --profile main up -d
-```
-
-### Machine B (Agents)
-
-```bash
-MAIN_HOST=<machine-a-ip> PUBLIC_HOST=<machine-b-ip> docker compose --profile agent up -d
-```
-
-For deployment over **Tailscale VPN**, see the override file:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile main --profile agent up -d
-```
-
----
-
 ## Environment Variables
+
+All variables are set in `JADE-bin-4.6.0/jade/docker/.env`.
+`docker-compose.local.yml` overrides the networking ones automatically for single-machine use.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `OPENROUTER_API_KEY` | *(required)* | OpenRouter API key for LLM calls |
 | `PUBLIC_HOST` | `jade-main` / service name | Advertised hostname for JADE MTP |
 | `MAIN_HOST` | `jade-main` | Address of the main JADE platform (DF/AMS) |
 | `PORT` | `1099` | JADE RMI port |
@@ -229,14 +280,22 @@ docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile m
 | `QUERY_PORT` | `5001` | Port for QueryAgent socket |
 | `FRONT_HOST` | `user-ui` | Hostname of the frontend container (for result forwarding) |
 | `FRONT_PORT` | `5002` | Port for forwarding results to the GUI |
+| `TS_AUTHKEY` | *(Tailscale only)* | Tailscale auth key for VPN sidecar |
+| `TAILSCALE_HOSTNAME` | `jade-main` | Tailscale hostname advertised by the sidecar |
+| `TS_EXTRA_ARGS` | — | Extra flags passed to `tailscale up` |
 
 ---
 
 ## Setup Notes
 
-> **`.env` file required.** Copy the `.env` template in the project root and set your
-> OpenRouter API key before building. The `.env` file is excluded from version control
-> by `.gitignore`.
+> **`docker/.env` is required and not committed.** It holds your OpenRouter API key and
+> (for Tailscale deployments) your VPN credentials. See the Distributed Deployment section
+> for the full list of variables to set.
+
+> **Always use `docker-compose.local.yml` for single-machine runs.** The base
+> `docker-compose.yml` is designed for distributed Tailscale deployments where each container
+> runs on a separate machine. Without the local override, agent containers will try to connect
+> to Tailscale IPs and fail.
 
 > **No separate requirements file.** All dependencies (Java 8, SWI-Prolog, Node.js 18, npm packages)
 > are installed inside the Docker image via the [Dockerfile](JADE-bin-4.6.0/jade/docker/Dockerfile).
@@ -250,8 +309,9 @@ DABS/
 ├── JADE-bin-4.6.0/jade/
 │   ├── docker/
 │   │   ├── Dockerfile                 # Container image (Java 8 + SWI-Prolog + Node.js 18)
-│   │   ├── docker-compose.yml         # Service definitions (main, agents, user-ui)
-│   │   ├── docker-compose.tailscale.yml
+│   │   ├── docker-compose.yml         # Base service definitions (main, agents, user-ui)
+│   │   ├── docker-compose.local.yml   # Override for single-machine local testing
+│   │   ├── .env                       # Secrets & network config (not committed)
 │   │   ├── entrypoint.sh              # Container entrypoint (role dispatcher)
 │   │   ├── start_main.sh              # Starts JADE main platform
 │   │   └── start_agent.sh             # Starts JADE agent container
