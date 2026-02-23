@@ -71,22 +71,27 @@ fi
 # === Start JADE platform ONLY (AMS/DF), no agents ===
 echo "[🚀 Starting JADE Main (AMS/DF only), no agents]"
  # Determine container local IP for JADE bind
- if [ -z "${BIND_IP:-}" ]; then
-   BIND_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
-   [ -z "$BIND_IP" ] && BIND_IP="$(hostname -i 2>/dev/null | awk '{print $1}')"
-   [ -z "$BIND_IP" ] && BIND_IP="127.0.0.1"
- fi
- echo "[BIND_IP]        $BIND_IP"
+if [ -z "${BIND_IP:-}" ]; then
+  BIND_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  [ -z "$BIND_IP" ] && BIND_IP="$(hostname -i 2>/dev/null | awk '{print $1}')"
+  [ -z "$BIND_IP" ] && BIND_IP="127.0.0.1"
+fi
 
- 
+
+echo "[BIND_IP]        $BIND_IP"
+echo "[PUBLIC_HOST]    $PUBLIC_HOST"
+
+PUBLIC_HOST=100.119.238.51
+
 exec java \
   -Dfile.encoding=UTF-8 \
   -Djava.library.path="$LD_LIBRARY_PATH" \
-  -Djava.rmi.server.hostname="$PUBLIC_HOST" \
   -cp "$OUT_DIR:$JADE_CP" \
+  -Djava.rmi.server.hostname="$PUBLIC_HOST" \
   jade.Boot \
     -name "$PLATFORM_NAME" \
-    -host "$BIND_IP" \
+    -host 0.0.0.0 \
     -port "$PORT" \
-    -mtps jade.mtp.http.MessageTransportProtocol \
+    -local-host "$PUBLIC_HOST" \
+    -local-port "$PORT" \
     -agents monitor:utils.MonitorAgent

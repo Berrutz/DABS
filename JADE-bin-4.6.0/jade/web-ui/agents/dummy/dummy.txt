@@ -1,0 +1,32 @@
+To build :
+
+javac --release 8 -encoding UTF-8 -cp web-ui/lib/jade.jar -d web-ui/agents/ web-ui/agents/DummyAgent.java 
+java 
+-DFile
+
+
+Run Main :
+
+IN LINUX :
+java 
+-cp jade.jar 
+-Djava.rmi.server.hostname=100.111.85.92 jade.Boot 
+-host 0.0.0.0 -local-host 100.111.85.92 -local-port 1099 (-gui)
+-port 1099
+
+
+IN DOCKER :
+java -Dfile.encoding=UTF-8 
+-Djava.library.path=/usr/lib/swi-prolog/lib/x86_64-linux:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server:/usr/lib/swi-prolog/lib/
+x86_64-linux:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server 
+-cp '/app/out:/app/web-ui/lib/*:/usr/lib/swi-prolog/lib/jpl.jar:.' 
+-Djava.rmi.server.hostname=100.111.85.92 
+jade.Boot 
+-name CoordinatorPlatform 
+-host 0.0.0.0 -local-host 100.111.85.92 -local-port 1099 
+-agents monitor:utils.MonitorAgent 
+-port 1099 
+
+Run Agent :
+
+java -cp "web-ui/agents:web-ui/lib/jade.jar" jade.Boot -container -host 100.119.238.51 -port 1099 -local-host 100.76.138.54  -local-port 2000 -agents Dummy:dummy.DummyAgent
