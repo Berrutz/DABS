@@ -1,0 +1,56 @@
+# Local single-machine override — no Tailscale VPN required.
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml --profile main up -d --build
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml --profile agent up -d
+#
+# jade-main shares the network namespace of jade-main-tailscale (the sidecar),
+# so agents reach it via the sidecar's Docker DNS name: jade-main-tailscale.
+# All agent containers share jade-agent-tailscale's namespace, so they need
+# unique LOCAL_PORTs to avoid binding conflicts on the same interface.
+
+services:
+  jade-main:
+    environment:
+      PUBLIC_HOST: jade-main-tailscale
+
+  jade-agent:
+    environment:
+      MAIN_HOST: jade-main-tailscale
+      PUBLIC_HOST: jade-agent-tailscale
+      LOCAL_PORT: "2000"
+
+  parser:
+    environment:
+      MAIN_HOST: jade-main-tailscale
+      PUBLIC_HOST: jade-agent-tailscale
+      LOCAL_PORT: "2001"
+      # All agents share jade-agent-tailscale's namespace, use localhost for intra-namespace comms
+      FRONT_HOST: "localhost"
+
+  logic:
+    environment:
+      MAIN_HOST: jade-main-tailscale
+      PUBLIC_HOST: jade-agent-tailscale
+      LOCAL_PORT: "2002"
+      FRONT_HOST: "localhost"
+
+  query:
+    environment:
+      MAIN_HOST: jade-main-tailscale
+      PUBLIC_HOST: jade-agent-tailscale
+      LOCAL_PORT: "2003"
+      FRONT_HOST: "localhost"
+
+  # Port 4000 must be published via the sidecar that owns the network namespace
+  tailscale-agent:
+    ports:
+      - "4000:4000"   # user-ui (Express.js) shares this namespace
+
+  user-ui:
+    environment:
+      MAIN_HOST: jade-main-tailscale
+      PUBLIC_HOST: jade-agent-tailscale
+      LOCAL_PORT: "2004"
+      # user-ui and query share the same network namespace, use localhost
+      QUERY_HOST: "localhost"
+      FRONT_HOST: "localhost"
