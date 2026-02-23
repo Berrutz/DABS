@@ -62,6 +62,22 @@ else
   echo "⚠️  No Java sources found in ${BASE_DIR}/{agents,utils} (okay if you already have precompiled classes)."
 fi
 
+# === Wait for PUBLIC_HOST to be a local interface (needed when sharing Tailscale namespace) ===
+if echo "$PUBLIC_HOST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+  echo "[⏳ Network] Waiting for $PUBLIC_HOST to appear on a local interface..."
+  MAX_WAIT=60
+  WAITED=0
+  while ! ip addr show 2>/dev/null | grep -q "$PUBLIC_HOST"; do
+    if [ "$WAITED" -ge "$MAX_WAIT" ]; then
+      echo "[❌ Network] Timeout: $PUBLIC_HOST never appeared. Proceeding anyway."
+      break
+    fi
+    sleep 2
+    WAITED=$((WAITED + 2))
+  done
+  echo "[✅ Network] $PUBLIC_HOST is up (waited ${WAITED}s)"
+fi
+
 # === Start JADE container and specified agents ===
 AGENTS="${1:-${AGENTS:-}}"
 
