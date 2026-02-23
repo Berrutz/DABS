@@ -33,6 +33,7 @@ services:
       TS_STATE_DIR: /var/lib/tailscale
       TS_AUTHKEY: ${TS_AUTHKEY:-}
       TS_EXTRA_ARGS: ""
+      TS_USERSPACE: "false"
     restart: unless-stopped
 
   jade-main:
@@ -57,6 +58,7 @@ services:
       TS_STATE_DIR: /var/lib/tailscale
       TS_AUTHKEY: ${AGENT_TS_AUTHKEY:-${TS_AUTHKEY:-}}
       TS_EXTRA_ARGS: ""
+      TS_USERSPACE: "false"
     restart: unless-stopped
     ports:
       - "4000:4000"   # user-ui shares this namespace, so the port is published here

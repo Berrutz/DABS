@@ -130,6 +130,6 @@ exec java \
     -container \
     -host "$MAIN_HOST" \
     -port "$PORT" \
-    -local-host "$BIND_IP" \
+    -local-host "$PUBLIC_HOST" \
     -local-port "$LOCAL_PORT" \
     -agents "$AGENTS"
