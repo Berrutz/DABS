@@ -24,17 +24,17 @@ LD_VAL="$LD_BASE"
 [ -d "$LD_JVM" ] && LD_VAL="${LD_VAL}:$LD_JVM"
 export LD_LIBRARY_PATH="${LD_VAL}:${LD_LIBRARY_PATH:-}"
 
-echo "[📂 BASE_DIR]     $BASE_DIR"
-echo "[📦 LIB_DIR]      $LIB_DIR"
-echo "[📤 OUT_DIR]      $OUT_DIR"
-echo "[🔗 JPL_JAR]      $JPL_JAR"
-echo "[🧭 JADE_CP]      $JADE_CP"
-echo "[🌐 PUBLIC_HOST]  $PUBLIC_HOST"
-echo "[🔌 PORT]         $PORT"
-echo "[🏷  PLATFORM]     $PLATFORM_NAME"
+echo "[INFO] BASE_DIR     $BASE_DIR"
+echo "[INFO] LIB_DIR      $LIB_DIR"
+echo "[INFO] OUT_DIR      $OUT_DIR"
+echo "[INFO] JPL_JAR      $JPL_JAR"
+echo "[INFO] JADE_CP      $JADE_CP"
+echo "[INFO] PUBLIC_HOST  $PUBLIC_HOST"
+echo "[INFO] PORT         $PORT"
+echo "[INFO] PLATFORM     $PLATFORM_NAME"
 
 # === Cleanup ===
-echo "[🧹 Cleaning .class files]"
+echo "[INFO] Cleaning .class files"
 mkdir -p "$OUT_DIR"
 # source cleanup (if present)
 find "${BASE_DIR}/agents" -name "*.class" -delete 2>/dev/null || true
@@ -43,7 +43,7 @@ find "${BASE_DIR}/utils"  -name "*.class" -delete 2>/dev/null || true
 find "${OUT_DIR}" -name "*.class" -delete 2>/dev/null || true
 
 # === Compilation (UTF-8) ===
-echo "[🧱 Compiling Java sources]"
+echo "[INFO] Compiling Java sources"
 # collect sources from agents/ and utils/
 SRC_LIST="/tmp/sources.list"
 : > "$SRC_LIST"
@@ -53,48 +53,41 @@ SRC_LIST="/tmp/sources.list"
 if [ -s "$SRC_LIST" ]; then
   javac -encoding UTF-8 -cp "$JADE_CP" -d "$OUT_DIR" @"$SRC_LIST"
 else
-  echo "⚠️  No Java sources found in ${BASE_DIR}/{agents,utils} (that is fine if you don't need to compile now)."
+  echo "[WARN] No Java sources found in ${BASE_DIR}/{agents,utils}."
 fi
 
 # === Start Main monitor UI (port 4100) ===
 if [ "${MAIN_MONITOR_AUTOSTART:-1}" = "1" ]; then
-  echo "[🖥  Main Monitor] Starting server-main.js (port ${MONITOR_PORT:-4100})…"
+  echo "[INFO] Starting server-main.js (port ${MONITOR_PORT:-4100})"
   (
     cd /app/web-ui \
     && MONITOR_PORT="${MONITOR_PORT:-4100}" \
        node server-main.js
   ) &
-  echo "[🖥  Main Monitor] running in background"
+  echo "[INFO] Main monitor running in background"
 fi
 
-
-# === Wait for PUBLIC_HOST to be a local interface (needed when sharing Tailscale namespace) ===
-# If PUBLIC_HOST looks like a routable IP (not a hostname), wait until it appears on a local interface.
-if echo "$PUBLIC_HOST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
-  echo "[⏳ Network] Waiting for $PUBLIC_HOST to appear on a local interface..."
-  MAX_WAIT=60
-  WAITED=0
-  while ! ip addr show 2>/dev/null | grep -q "$PUBLIC_HOST"; do
-    if [ "$WAITED" -ge "$MAX_WAIT" ]; then
-      echo "[❌ Network] Timeout: $PUBLIC_HOST never appeared. Proceeding anyway."
-      break
-    fi
-    sleep 2
-    WAITED=$((WAITED + 2))
-  done
-  echo "[✅ Network] $PUBLIC_HOST is up (waited ${WAITED}s)"
-fi
-
-# === Start JADE platform ONLY (AMS/DF), no agents ===
-echo "[🚀 Starting JADE Main (AMS/DF only), no agents]"
+# Resolve a local bind IP for JADE internals.
+# PUBLIC_HOST may be a VPN-reachable IP not present on local interfaces.
 if [ -z "${BIND_IP:-}" ]; then
   BIND_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
   [ -z "$BIND_IP" ] && BIND_IP="$(hostname -i 2>/dev/null | awk '{print $1}')"
   [ -z "$BIND_IP" ] && BIND_IP="127.0.0.1"
 fi
 
-echo "[BIND_IP]        $BIND_IP"
-echo "[PUBLIC_HOST]    $PUBLIC_HOST"
+# Best-effort diagnostic when PUBLIC_HOST is an IP.
+if echo "$PUBLIC_HOST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+  if ip addr show 2>/dev/null | grep -q "$PUBLIC_HOST"; then
+    echo "[INFO] PUBLIC_HOST is local: $PUBLIC_HOST"
+  else
+    echo "[INFO] PUBLIC_HOST ($PUBLIC_HOST) is not local. Using BIND_IP ($BIND_IP) for -local-host."
+  fi
+fi
+
+# === Start JADE platform ONLY (AMS/DF), no agents ===
+echo "[INFO] Starting JADE Main (AMS/DF only), no agents"
+echo "[INFO] BIND_IP      $BIND_IP"
+echo "[INFO] PUBLIC_HOST  $PUBLIC_HOST"
 
 exec java \
   -Dfile.encoding=UTF-8 \
@@ -105,6 +98,6 @@ exec java \
     -name "$PLATFORM_NAME" \
     -host 0.0.0.0 \
     -port "$PORT" \
-    -local-host "$PUBLIC_HOST" \
+    -local-host "$BIND_IP" \
     -local-port "$PORT" \
     -agents monitor:utils.MonitorAgent
