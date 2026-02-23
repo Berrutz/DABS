@@ -98,6 +98,7 @@ exec java \
     -name "$PLATFORM_NAME" \
     -host 0.0.0.0 \
     -port "$PORT" \
-    -local-host "$BIND_IP" \
+    -local-host "$PUBLIC_HOST" \
     -local-port "$PORT" \
     -agents monitor:utils.MonitorAgent
+
