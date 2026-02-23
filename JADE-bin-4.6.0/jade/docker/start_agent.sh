@@ -30,7 +30,6 @@ export LD_LIBRARY_PATH="${LD_VAL}:${LD_LIBRARY_PATH:-}"
 # Knowledge base path (used by LLMService)
 export KB_PATH="${KB_PATH:-/app/web-ui/kb/knowledge.pl}"
 
-
 echo "[INFO] BASE_DIR     $BASE_DIR"
 echo "[INFO] LIB_DIR      $LIB_DIR"
 echo "[INFO] OUT_DIR      $OUT_DIR"
@@ -43,14 +42,14 @@ echo "[INFO] LOCAL_PORT   $LOCAL_PORT"
 echo "[INFO] PLATFORM     $PLATFORM_NAME"
 
 # === Cleanup ===
-echo "[🧹 Cleaning .class files]"
+echo "[INFO] Cleaning .class files"
 mkdir -p "$OUT_DIR"
 find "${BASE_DIR}/agents" -name "*.class" -delete 2>/dev/null || true
 find "${BASE_DIR}/utils"  -name "*.class" -delete 2>/dev/null || true
 find "$OUT_DIR" -name "*.class" -delete 2>/dev/null || true
 
 # === Compilation (UTF-8) ===
-echo "[🧱 Compiling Java sources]"
+echo "[INFO] Compiling Java sources"
 SRC_LIST="/tmp/sources.list"
 : > "$SRC_LIST"
 [ -d "${BASE_DIR}/agents" ] && find "${BASE_DIR}/agents" -type f -name '*.java' >> "$SRC_LIST"
@@ -59,24 +58,27 @@ SRC_LIST="/tmp/sources.list"
 if [ -s "$SRC_LIST" ]; then
   javac -encoding UTF-8 -cp "$JADE_CP" -d "$OUT_DIR" @"$SRC_LIST"
 else
-  echo "⚠️  No Java sources found in ${BASE_DIR}/{agents,utils} (okay if you already have precompiled classes)."
+  echo "[WARN] No Java sources found in ${BASE_DIR}/{agents,utils}."
 fi
 
-# === Wait for PUBLIC_HOST to be a local interface (needed when sharing Tailscale namespace) ===
-if echo "$PUBLIC_HOST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
-  echo "[⏳ Network] Waiting for $PUBLIC_HOST to appear on a local interface..."
-  MAX_WAIT=60
-  WAITED=0
-  while ! ip addr show 2>/dev/null | grep -q "$PUBLIC_HOST"; do
-    if [ "$WAITED" -ge "$MAX_WAIT" ]; then
-      echo "[❌ Network] Timeout: $PUBLIC_HOST never appeared. Proceeding anyway."
-      break
-    fi
-    sleep 2
-    WAITED=$((WAITED + 2))
-  done
-  echo "[✅ Network] $PUBLIC_HOST is up (waited ${WAITED}s)"
+# Resolve a local bind IP for JADE internals.
+# PUBLIC_HOST may be a VPN-reachable IP not present on local interfaces.
+if [ -z "${BIND_IP:-}" ]; then
+  BIND_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  [ -z "$BIND_IP" ] && BIND_IP="$(hostname -i 2>/dev/null | awk '{print $1}')"
+  [ -z "$BIND_IP" ] && BIND_IP="127.0.0.1"
 fi
+
+# Best-effort diagnostic when PUBLIC_HOST is an IP.
+if echo "$PUBLIC_HOST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+  if ip addr show 2>/dev/null | grep -q "$PUBLIC_HOST"; then
+    echo "[INFO] PUBLIC_HOST is local: $PUBLIC_HOST"
+  else
+    echo "[INFO] PUBLIC_HOST ($PUBLIC_HOST) is not local. Using BIND_IP ($BIND_IP) for -local-host."
+  fi
+fi
+
+echo "[INFO] BIND_IP      $BIND_IP"
 
 # === Start JADE container and specified agents ===
 AGENTS="${1:-${AGENTS:-}}"
@@ -108,16 +110,16 @@ fi
 
 if echo "$AGENTS" | grep -qiE ':agents\.UserAgent'; then
    if [ "${UI_AUTOSTART:-1}" = "1" ]; then
-     echo '[🕸  Web UI] Starting server.js (npm start) on port 4000…'
+     echo '[INFO] Starting server.js (npm start) on port 4000'
     (
        cd /app/web-ui \
        && npm start
      ) &
-    echo '[🕸  Web UI] running in background'
+    echo '[INFO] Web UI running in background'
    fi
 fi
 
-echo "[🚀 Starting agents '$AGENTS' connected to $MAIN_HOST:$PORT]"
+echo "[INFO] Starting agents '$AGENTS' connected to $MAIN_HOST:$PORT"
 
 exec java \
   -Dfile.encoding=UTF-8 \
@@ -128,6 +130,6 @@ exec java \
     -container \
     -host "$MAIN_HOST" \
     -port "$PORT" \
-    -local-host "$PUBLIC_HOST" \
+    -local-host "$BIND_IP" \
     -local-port "$LOCAL_PORT" \
     -agents "$AGENTS"
