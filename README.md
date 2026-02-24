@@ -184,9 +184,9 @@ All variables are set in `JADE-bin-4.6.0/jade/docker/.env`.
 
 ## Setup Notes
 
-> **`docker/.env` is required and not committed.** It holds your OpenRouter API key and
-> (for Tailscale deployments) your VPN credentials. See the Distributed Deployment section
-> for the full list of variables to set.
+> **`docker/.env` is required and not committed.** Create it before starting the containers.
+> Each deployment guide ([README_LOCAL.md](README_LOCAL.md), [README_TAILSCALE.md](README_TAILSCALE.md))
+> shows exactly what to put in it for that mode.
 
 > **Always layer an overlay on top of the base compose.** `docker-compose.local.yml` overrides
 > networking for single-machine use (Docker internal DNS names). `docker-compose.tailscale.yml`

@@ -21,16 +21,16 @@ cd DABS
 
 ---
 
-## Step 2 — Configure `.env`
+## Step 2 — Create and configure `.env`
 
-Edit `JADE-bin-4.6.0/jade/docker/.env` and set your OpenRouter key:
+If `JADE-bin-4.6.0/jade/docker/.env` does not exist, create it. The only required variable for local mode is your OpenRouter API key:
 
 ```env
-OPENROUTER_API_KEY=sk-or-v1-your-actual-key-here
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
 ```
 
-The other variables (`PUBLIC_HOST`, `MAIN_HOST`, `TS_AUTHKEY`) are not used in local mode —
-`docker-compose.local.yml` overrides the networking ones automatically.
+Replace `sk-or-v1-your-key-here` with your actual [OpenRouter API key](https://openrouter.ai/settings/keys).
+All other variables are handled automatically by `docker-compose.local.yml`.
 
 ---
 

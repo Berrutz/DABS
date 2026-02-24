@@ -66,9 +66,10 @@ Machine B: 100.a.b.c
 
 ---
 
-## Step 3 — Configure `.env` on each machine
+## Step 3 — Create and configure `.env` on each machine
 
-Edit `JADE-bin-4.6.0/jade/docker/.env` with the values for **that machine**.
+If `JADE-bin-4.6.0/jade/docker/.env` does not exist on a machine, create it.
+Fill it with the values for **that machine** as shown below.
 
 ### Machine A `.env`
 
