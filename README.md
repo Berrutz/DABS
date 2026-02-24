@@ -1,4 +1,4 @@
-# SDAI — Distributed Agent-Based System
+# DABS — Distributed Agent-Based System for Logical Reasoning from Natural Language using JADE and LLMs
 
 **A multi-agent platform built with JADE that combines NLP (LLM), Prolog logic programming, and distributed containerized deployment.**
 
@@ -249,6 +249,16 @@ DABS/
 | HTTP Client | OkHttp 3.14 |
 | Containerization | Docker + Docker Compose |
 | Networking | TCP sockets, JADE HTTP MTP, WebSocket |
+
+---
+
+## Future Extensions
+
+| Extension | Description |
+|-----------|-------------|
+| **Persistent Knowledge Base** | Currently the Prolog KB lives in memory and resets when the LogicAgent container restarts. A future version would back it with a database (e.g. PostgreSQL or SQLite) so facts and rules survive restarts and can be shared across multiple LogicAgent instances. |
+| **Local LLM support** | Replace the OpenRouter API call with a locally hosted model (e.g. via Ollama or llama.cpp) to remove the cloud dependency, reduce latency, and allow offline use. The `LLMService` abstraction already isolates this call, making the swap straightforward. |
+| **Federated multi-main topology** | Multiple JADE main containers, each managing a pool of agents, communicating with each other to maintain a consistent distributed knowledge base across nodes. |
 
 ---
 
